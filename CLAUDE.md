@@ -1,6 +1,6 @@
 # CLAUDE.md — Scriptorium developer guide
 
-Project memory for Claude Code sessions working **on this repo** (the Scriptorium plugin + server). For the wiki-content schema (the `SCHEMA.md` that lives inside each *served* wiki collection), see `server/templates/SCHEMA-default.md.tpl`.
+Project memory for Claude Code sessions working **on this repo** (the Scriptorium plugin + server). For the wiki-content schema (the `SCHEMA.md` that lives inside each *served* wiki collection), see `server/templates/SCHEMA.md.tpl`.
 
 ## What this repo is
 
@@ -62,9 +62,7 @@ scriptorium/
     │   ├── schema/frontmatter.ts   # Zod frontmatter (per page type)
     │   └── cli/index.ts            # admin CLI: token issue/list/revoke
     ├── templates/
-    │   ├── SCHEMA-default.md.tpl
-    │   ├── SCHEMA-research.md.tpl
-    │   ├── SCHEMA-team-knowledge.md.tpl
+    │   ├── SCHEMA.md.tpl
     │   └── index.md.tpl
     ├── Dockerfile
     ├── docker-compose.yml

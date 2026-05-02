@@ -36,19 +36,18 @@ export function registerCollections(server: McpServer, auth: AuthContext) {
     'create_collection',
     {
       title: 'Create collection',
-      description: 'Create a new wiki collection seeded with a schema template (default | research | team-knowledge).',
+      description: 'Create a new wiki collection. Seeded with the universal SCHEMA.md and an empty index.md.',
       inputSchema: {
         slug: z.string(),
         name: z.string().min(1),
-        schema_template: z.enum(['default', 'research', 'team-knowledge']).default('default'),
       },
     },
-    async ({ slug, name, schema_template }) => {
+    async ({ slug, name }) => {
       if (!canWrite(auth)) return err('write scope required');
       if (!SLUG_RE.test(slug)) return err('slug must be lowercase kebab-case, 3-40 chars, start with a letter');
       if (!canAccessCollection(auth, slug)) return err('this token cannot access that slug');
 
-      const schemaMd = readTemplate(`SCHEMA-${schema_template}.md.tpl`).replace(/{{slug}}/g, slug).replace(/{{name}}/g, name);
+      const schemaMd = readTemplate('SCHEMA.md.tpl').replace(/{{slug}}/g, slug).replace(/{{name}}/g, name);
       const indexMd = readTemplate('index.md.tpl').replace(/{{name}}/g, name);
       const today = new Date().toISOString().slice(0, 10);
 
@@ -68,7 +67,7 @@ export function registerCollections(server: McpServer, auth: AuthContext) {
 
           await client.query(
             'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-            [cid, 'init', auth.tokenName, { template: schema_template }]
+            [cid, 'init', auth.tokenName, {}]
           );
 
           return cid;

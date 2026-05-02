@@ -22,7 +22,10 @@ export const ConceptSchema = z.object({
 export const EntitySchema = z.object({
   ...baseFields,
   type: z.literal('entity'),
-  entity_kind: z.enum(['person', 'org', 'project', 'paper', 'model', 'tool']),
+  entity_kind: z.enum([
+    'person', 'org', 'project', 'paper', 'model', 'tool',
+    'code-symbol', 'library', 'dataset', 'endpoint', 'concept-ref',
+  ]),
   canonical_url: z.string().url().optional(),
 });
 
@@ -53,6 +56,60 @@ export const DecisionSchema = z.object({
   superseded_by: z.string().optional(),
 });
 
+export const PaperSchema = z.object({
+  ...baseFields,
+  type: z.literal('paper'),
+  authors: z.array(z.string()).default([]),
+  year: z.number().int().optional(),
+  venue: z.string().optional(),
+  arxiv_id: z.string().optional(),
+  doi: z.string().optional(),
+  abstract_summary: z.string().optional(),
+  key_claims: z.array(z.string()).default([]),
+  limitations: z.array(z.string()).default([]),
+});
+
+export const ExperimentSchema = z.object({
+  ...baseFields,
+  type: z.literal('experiment'),
+  hypothesis_ref: z.string().optional(),
+  setup: z.string(),
+  result: z.string(),
+  takeaway: z.string(),
+  ran_at: isoDate,
+});
+
+export const HypothesisSchema = z.object({
+  ...baseFields,
+  type: z.literal('hypothesis'),
+  status: z.enum(['open', 'supported', 'refuted', 'inconclusive']).default('open'),
+  evidence_for: z.array(wikilink).default([]),
+  evidence_against: z.array(wikilink).default([]),
+  last_evaluated: isoDate.optional(),
+});
+
+export const PlaybookSchema = z.object({
+  ...baseFields,
+  type: z.literal('playbook'),
+  trigger: z.string(),
+  prerequisites: z.array(z.string()).default([]),
+  steps: z.array(z.string()).min(1),
+  last_verified: isoDate.optional(),
+});
+
+export const IncidentSchema = z.object({
+  ...baseFields,
+  type: z.literal('incident'),
+  status: z.enum(['open', 'resolved']).default('open'),
+  severity: z.enum(['P0', 'P1', 'P2', 'P3']),
+  detected_at: z.string(),
+  resolved_at: z.string().optional(),
+  timeline: z.array(z.string()).default([]),
+  root_cause: z.string().optional(),
+  lessons: z.array(z.string()).default([]),
+  related_decisions: z.array(wikilink).default([]),
+});
+
 export const FrontmatterSchema = z.discriminatedUnion('type', [
   ConceptSchema,
   EntitySchema,
@@ -60,6 +117,11 @@ export const FrontmatterSchema = z.discriminatedUnion('type', [
   ComparisonSchema,
   SynthesisSchema,
   DecisionSchema,
+  PaperSchema,
+  ExperimentSchema,
+  HypothesisSchema,
+  PlaybookSchema,
+  IncidentSchema,
 ]);
 
 export type Frontmatter = z.infer<typeof FrontmatterSchema>;

@@ -14,8 +14,8 @@ Create a new wiki collection on the connected server.
    - AskUserQuestion: "Create collection `<slug>` on `<server>`? (y/N)"
 
 3. **Server call**
-   - `scriptorium.create_collection({ slug, name, schema_template: "default" })`
-   - Server seeds: `CLAUDE.md` (schema), `wiki/index.md`, `log.md`, default page-type templates.
+   - `scriptorium.create_collection({ slug, name })`
+   - Server seeds: `SCHEMA.md` (the universal schema doc), `index.md`, and an `init` log entry.
 
 4. **Log**
    - `scriptorium.append_log({ collection: slug, kind: "init", actor: "claude", payload: { template: "default" } })`
@@ -30,15 +30,13 @@ Create a new wiki collection on the connected server.
    Schema: <server>/collections/<slug>/schema
    ```
 
-## Schema template options
+## Schema
 
-| Template | Purpose |
-|---|---|
-| `default` | Karpathy-style: concept/entity/source-summary/comparison/synthesis |
-| `research` | Adds `paper`, `experiment`, `hypothesis` types |
-| `team-knowledge` | Adds `decision`, `playbook`, `incident` types |
+Every collection is seeded with the same universal `SCHEMA.md` — eleven page types covering general knowledge, research, team ops, and codebases:
 
-User can override later via `scriptorium.update_schema()`.
+`concept`, `entity` (with broad `entity_kind` including `code-symbol`, `library`, `dataset`, `endpoint`), `source-summary`, `comparison`, `synthesis`, `decision`, `paper`, `experiment`, `hypothesis`, `playbook`, `incident`.
+
+Don't like a type? Don't use it. Want to add one? `scriptorium.update_schema()` to evolve it per collection.
 
 ## Failure modes
 

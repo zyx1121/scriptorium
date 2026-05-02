@@ -42,9 +42,9 @@ Detailed flow: see `reference/connect.md`. Summary:
 ### `init <name>` — create a new wiki collection on the server
 
 Detailed flow: see `reference/init.md`. Summary:
-1. `scriptorium.create_collection(name, slug, schema_template)` — server pulls the template repo, seeds `index.md` / `log.md` / `CLAUDE.md`, returns collection ID.
-2. Append `init` entry to `log.md` via `scriptorium.append_log()`.
-3. Print the collection URL and a short "what to do next" hint.
+1. `scriptorium.create_collection({ slug, name })` — server seeds the universal `SCHEMA.md` and an empty `index.md`, returns the collection ID.
+2. Server logs the `init` event automatically.
+3. Print the collection ID and a short "what to do next" hint.
 
 ### `ingest <path|url>` — turn a source into wiki pages
 

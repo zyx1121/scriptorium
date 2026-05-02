@@ -16,7 +16,7 @@ The plugin exposes these via `.mcp.json` SSE connection. Server-side they're typ
 |---|---|---|
 | `scriptorium.get_schema` | `{ collection }` | full `CLAUDE.md` content of that collection |
 | `scriptorium.update_schema` | `{ collection, schema }` | `{ schema_version }` (audited) |
-| `scriptorium.create_collection` | `{ slug, name, schema_template }` | `{ collection_id }` |
+| `scriptorium.create_collection` | `{ slug, name }` | `{ collection_id }` |
 
 ## Pages
 
