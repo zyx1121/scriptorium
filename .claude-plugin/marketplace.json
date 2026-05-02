@@ -1,0 +1,14 @@
+{
+  "name": "scriptorium",
+  "owner": {
+    "name": "zyx1121",
+    "url": "https://github.com/zyx1121"
+  },
+  "plugins": [
+    {
+      "name": "scriptorium",
+      "source": "./",
+      "description": "Connect Claude Code to a Scriptorium wiki server. Persistent, compounding knowledge base for teams."
+    }
+  ]
+}

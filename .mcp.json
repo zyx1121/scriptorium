@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "scriptorium": {
+      "type": "http",
+      "url": "${SCRIPTORIUM_API_URL}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SCRIPTORIUM_TOKEN}"
+      }
+    }
+  }
+}

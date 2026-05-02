@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scriptorium
+      POSTGRES_PASSWORD: scriptorium
+      POSTGRES_DB: scriptorium
+    volumes:
+      - scriptorium_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scriptorium -d scriptorium"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://scriptorium:scriptorium@db:5432/scriptorium
+      PORT: 8787
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8787}
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${HOST_PORT:-8787}:8787"
+
+volumes:
+  scriptorium_data:

@@ -1,0 +1,12 @@
+{
+  "name": "scriptorium",
+  "version": "0.1.0",
+  "description": "Self-maintained LLM wiki for teams. Plugin connects to a Scriptorium server (HTTPS + PostgreSQL) so a group of humans and Claude Code sessions can build, query, and lint a compounding knowledge base together.",
+  "author": {
+    "name": "詹詠翔 (zyx1121)",
+    "url": "https://github.com/zyx1121"
+  },
+  "homepage": "https://github.com/zyx1121/scriptorium",
+  "repository": "https://github.com/zyx1121/scriptorium",
+  "license": "MIT"
+}
