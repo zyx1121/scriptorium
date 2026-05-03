@@ -1,5 +1,5 @@
 ---
-description: "Ask the wiki a question. Returns a synthesised answer with inline citations."
+description: "Ask the wiki a question with inline citations. Use for any factual / definition / named-entity / comparison / 'what is' / 'who is' / 'how does' question — even if the user does not explicitly say 'wiki' or 'search'."
 argument-hint: "<question> [--collection <slug>]"
 ---
 

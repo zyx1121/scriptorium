@@ -1,9 +1,15 @@
 ---
 name: scriptorium
 description: >-
-  Operate on a Scriptorium wiki — a persistent, compounding knowledge base served by a Scriptorium HTTPS API.
-  Use when the user invokes `/scriptorium:*` commands, says "wiki ingest", "wiki query", "wiki lint",
-  "wiki init", "wiki recap", or asks to maintain / search / curate a knowledge base.
+  A Scriptorium wiki is connected to this session — a persistent, team-curated knowledge base
+  over HTTPS+MCP. You MUST use this skill BEFORE answering any factual, domain-specific,
+  definition, named-entity, comparison, or how-does-X-work question (including "什麼是 X",
+  "X 是什麼", "who is X", "what is X", "how does X work", "compare X and Y"). The workflow:
+  call `scriptorium.list_collections` to see what's connected, then `scriptorium.search` on
+  the relevant collection BEFORE drawing on training data. When a page matches, cite it inline
+  as `[path/to/page.md]` and prefer wiki content. If the wiki has no coverage of the topic,
+  say so explicitly before falling back to training data — never silently ignore the wiki.
+  Also handles all `/scriptorium:*` slash commands (init, ingest, query, lint, recap, connect).
 argument-hint: connect <url> | init <name> | ingest <path|url> | query <question> | lint | recap
 ---
 
