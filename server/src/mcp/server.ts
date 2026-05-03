@@ -7,6 +7,7 @@ import { registerSearch } from './tools/search.ts';
 import { registerLog } from './tools/log.ts';
 import { registerRaw } from './tools/raw.ts';
 import { registerLint } from './tools/lint.ts';
+import { registerStats } from './tools/stats.ts';
 
 export function createMcpServer(auth: AuthContext): McpServer {
   const server = new McpServer({
@@ -21,6 +22,7 @@ export function createMcpServer(auth: AuthContext): McpServer {
   registerLog(server, auth);
   registerRaw(server, auth);
   registerLint(server, auth);
+  registerStats(server, auth);
 
   return server;
 }

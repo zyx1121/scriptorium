@@ -29,7 +29,7 @@ export function registerSearch(server: McpServer, auth: AuthContext) {
       }
       params.push(top_k);
 
-      const r = await query(
+      const r = await query<{ path: string; title: string | null; type: string | null; score: number; snippet: string }>(
         `SELECT path,
                 frontmatter->>'title' AS title,
                 frontmatter->>'type' AS type,
@@ -42,6 +42,15 @@ export function registerSearch(server: McpServer, auth: AuthContext) {
          LIMIT $${params.length}`,
         params
       );
+      // fire-and-forget search log
+      query(
+        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
+        [cid, 'search', auth.tokenName, {
+          query: q,
+          result_count: r.rows.length,
+          top_paths: r.rows.slice(0, 5).map(row => row.path),
+        }]
+      ).catch(e => console.error('[stats] search log failed:', e));
       return ok(r.rows);
     }
   );

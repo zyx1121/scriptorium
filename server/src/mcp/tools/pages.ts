@@ -22,6 +22,11 @@ export function registerPages(server: McpServer, auth: AuthContext) {
         [cid, path]
       );
       if (r.rows.length === 0) return err(`page not found: ${path}`);
+      // fire-and-forget access log; failures here must never fail the read
+      query(
+        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
+        [cid, 'page_read', auth.tokenName, { path }]
+      ).catch(e => console.error('[stats] page_read log failed:', e));
       return ok(r.rows[0]);
     }
   );
