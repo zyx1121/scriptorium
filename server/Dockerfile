@@ -1,9 +1,9 @@
-FROM oven/bun:1.1-alpine AS deps
+FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lockb* ./
 RUN bun install --frozen-lockfile || bun install
 
-FROM oven/bun:1.1-alpine AS runtime
+FROM oven/bun:1.3-alpine AS runtime
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
