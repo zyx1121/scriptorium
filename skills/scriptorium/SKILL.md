@@ -36,6 +36,14 @@ You write to layer 2 by calling **Scriptorium MCP tools**, not by writing files 
 
 ## Operations
 
+### `status` — one-screen connection / health summary
+
+Detailed flow: see `reference/status.md`. Summary:
+1. Call `scriptorium.health()` — server up + db reachable + version.
+2. Call `scriptorium.whoami()` — token name, scopes, accessible collections.
+3. Call `scriptorium.list_collections()` — slugs + names + schema versions.
+4. Render a compact panel; never echo the raw token.
+
 ### `connect [<url>]` — print setup instructions for this session
 
 The plugin connects to the server via `.mcp.json` reading `SCRIPTORIUM_API_URL` and `SCRIPTORIUM_TOKEN` from the environment. This command does **not** persist anything — it prints what the user needs to set, then they restart their shell and reopen Claude Code.

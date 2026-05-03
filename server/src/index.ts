@@ -5,10 +5,11 @@ import { createMcpServer } from './mcp/server.ts';
 import { verifyBearer, canAccessCollection, type AuthContext } from './auth/middleware.ts';
 import { query } from './db/client.ts';
 import { computeStats } from './stats.ts';
-import { renderDashboard } from './dashboard.ts';
+import { renderDashboard, renderCollectionPicker, renderPageDetail } from './dashboard.ts';
+import { rateLimit } from './rate-limit.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
-const VERSION = '0.1.0';
+const VERSION = '0.3.0';
 
 interface SessionEntry {
   transport: StreamableHTTPServerTransport;
@@ -53,10 +54,16 @@ async function handleWhoami(req: http.IncomingMessage, res: http.ServerResponse)
 }
 
 async function handleDashboard(req: http.IncomingMessage, res: http.ServerResponse) {
+  const ip = (req.socket.remoteAddress ?? 'unknown').replace(/^::ffff:/, '');
+  if (!rateLimit(`dash:${ip}`, 20, 1 / 3)) {
+    res.writeHead(429, { 'Content-Type': 'text/plain; charset=utf-8', 'Retry-After': '3' });
+    res.end('rate limited (20 req/min per IP)');
+    return;
+  }
+
   const url = new URL(req.url!, `http://${req.headers.host ?? 'localhost'}`);
-  // auth: prefer Bearer header; fall back to ?token= query (browser convenience).
   let authHeader = req.headers.authorization;
-  const queryToken = url.searchParams.get('token');
+  const queryToken = url.searchParams.get('token') ?? undefined;
   if (!authHeader && queryToken) authHeader = `Bearer ${queryToken}`;
   const auth = await verifyBearer(authHeader);
   if (!auth) {
@@ -66,26 +73,54 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
   }
 
   const collection = url.searchParams.get('collection');
+  const path = url.searchParams.get('path');
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days') ?? '7') || 7));
 
   if (!collection) {
     const r = await query<{ slug: string; name: string }>('SELECT slug, name FROM collections ORDER BY slug');
     const visible = r.rows.filter(c => canAccessCollection(auth, c.slug));
-    const list = visible.map(c =>
-      `<li><a href="/dashboard?collection=${encodeURIComponent(c.slug)}${queryToken ? `&token=${encodeURIComponent(queryToken)}` : ''}">${c.name} <span style="color:#888">(${c.slug})</span></a></li>`
-    ).join('');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`<!doctype html><meta charset="utf-8"><title>scriptorium</title>
-<body style="font:14px/1.6 -apple-system,system-ui,monospace;background:#0e0e10;color:#e9e9ec;padding:32px">
-<h1 style="font-weight:600">scriptorium · pick a collection</h1>
-<ul>${list || '<li style="color:#888">(no collections)</li>'}</ul>
-</body>`);
+    res.end(renderCollectionPicker({ collections: visible, token: queryToken }));
     return;
   }
 
   if (!canAccessCollection(auth, collection)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('forbidden — this token cannot access that collection');
+    return;
+  }
+
+  if (path) {
+    const r = await query<{ id: number; content: string; frontmatter: Record<string, unknown>; version: number; updated_at: Date }>(
+      `SELECT p.id, p.content, p.frontmatter, p.version, p.updated_at
+       FROM pages p
+       JOIN collections c ON c.id = p.collection_id
+       WHERE c.slug = $1 AND p.path = $2 AND p.deleted_at IS NULL`,
+      [collection, path]
+    );
+    const row = r.rows[0];
+    if (!row) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(`page not found: ${path}`);
+      return;
+    }
+    const reads = await query<{ ts: Date; actor: string }>(
+      `SELECT ts, actor FROM logs
+       WHERE collection_id = (SELECT id FROM collections WHERE slug = $1)
+         AND kind = 'page_read' AND payload->>'path' = $2
+       ORDER BY ts DESC LIMIT 10`,
+      [collection, path]
+    );
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderPageDetail({
+      collection,
+      path,
+      content: row.content,
+      frontmatter: row.frontmatter,
+      version: row.version,
+      updated_at: row.updated_at.toISOString(),
+      recent_reads: reads.rows.map(r => ({ ts: r.ts.toISOString(), actor: r.actor })),
+    }, { token: queryToken }));
     return;
   }
 
@@ -97,12 +132,18 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
   }
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(renderDashboard(stats));
+  res.end(renderDashboard(stats, { token: queryToken }));
 }
 
 async function handleMcp(req: http.IncomingMessage, res: http.ServerResponse) {
   const auth = await verifyBearer(req.headers.authorization);
   if (!auth) return send(res, 401, { error: 'unauthorized' });
+
+  if (!rateLimit(`mcp:${auth.tokenId}`, 60, 1)) {
+    res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '1' });
+    res.end(JSON.stringify({ error: 'rate limited (60 req/min per token)' }));
+    return;
+  }
 
   const sessionId = (req.headers['mcp-session-id'] as string | undefined)?.trim();
 

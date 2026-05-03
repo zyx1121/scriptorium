@@ -58,6 +58,12 @@ The plugin exposes these via `.mcp.json` SSE connection. Server-side they're typ
 | `scriptorium.lint` | `{ collection, scope: "all" \| "touched_pages", paths? }` | `{ errors, warnings, info }` |
 | `scriptorium.save_lint_report` | `{ collection, report, fixed, deferred }` | `{ report_path }` |
 
+## Stats / observability
+
+| Tool | Args | Returns |
+|---|---|---|
+| `scriptorium.stats` | `{ collection, days?: 7 }` | `{ totals, by_type, top_pages_by_reads, recently_added, recently_updated, recent_searches, stale, ... }` |
+
 ## Concurrency
 
 `update_page` requires `base_version` — server does CAS. If conflict, returns `409 conflict` with the current version; you must `get_page` again, merge, retry.
