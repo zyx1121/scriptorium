@@ -24,8 +24,8 @@ export function registerPages(server: McpServer, auth: AuthContext) {
       if (r.rows.length === 0) return err(`page not found: ${path}`);
       // fire-and-forget access log; failures here must never fail the read
       query(
-        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-        [cid, 'page_read', auth.tokenName, { path }]
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+        [cid, 'page_read', auth.tokenName, auth.userId, { path }]
       ).catch(e => console.error('[stats] page_read log failed:', e));
       return ok(r.rows[0]);
     }
@@ -168,8 +168,8 @@ export function registerPages(server: McpServer, auth: AuthContext) {
       );
       if (r.rowCount === 0) return err(`page not found: ${path}`);
       await query(
-        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-        [cid, 'delete_page', auth.tokenName, { path, reason }]
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+        [cid, 'delete_page', auth.tokenName, auth.userId, { path, reason }]
       );
       return ok({ deleted: path });
     }

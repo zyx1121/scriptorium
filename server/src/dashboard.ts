@@ -1,4 +1,4 @@
-import type { StatsResult } from './stats.ts';
+import type { StatsResult, TeamActivityResult } from './stats.ts';
 
 const escape = (s: string | null | undefined): string =>
   String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -144,6 +144,12 @@ export function renderDashboard(s: StatsResult, opts: DashboardOpts = {}): strin
         `<tr><td>${escape(r.query)}</td><td class="num">${r.result_count ?? '—'}</td><td class="dim">${ago(r.ts)}</td></tr>`
       ).join('');
 
+  const byUserRows = s.top_users_by_activity.length === 0
+    ? `<tr><td colspan="6" class="empty">no team activity recorded</td></tr>`
+    : s.top_users_by_activity.map(u =>
+        `<tr><td>${escape(u.display)}${u.user_email && u.user_name ? ` <span class="dim">(${escape(u.user_name)})</span>` : ''}${u.user_email ? '' : ' <span class="dim">(unassigned)</span>'}</td><td class="num">${u.ingests}</td><td class="num">${u.searches}</td><td class="num">${u.page_reads}</td><td class="num">${u.total}</td><td class="dim">${ago(u.last_active)}</td></tr>`
+      ).join('');
+
   const staleRows = s.stale.length === 0
     ? `<tr><td colspan="3" class="empty">no stale pages</td></tr>`
     : s.stale.map(r =>
@@ -186,6 +192,9 @@ export function renderDashboard(s: StatsResult, opts: DashboardOpts = {}): strin
 <h2>recent searches</h2>
 <table><thead><tr><th>query</th><th>results</th><th>when</th></tr></thead><tbody>${recentSearchesRows}</tbody></table>
 
+<h2>by user (${s.window_days}d)</h2>
+<table><thead><tr><th>user</th><th>ingests</th><th>searches</th><th>reads</th><th>total</th><th>last active</th></tr></thead><tbody>${byUserRows}</tbody></table>
+
 <h2>stale (>180d, low traffic)</h2>
 <table><thead><tr><th>path</th><th>updated</th><th>last read</th></tr></thead><tbody>${staleRows}</tbody></table>
 `;
@@ -201,12 +210,53 @@ export function renderCollectionPicker(opts: { collections: { slug: string; name
         `<tr><td><a href="${escape(withToken(`/dashboard?collection=${encodeURIComponent(c.slug)}`, t))}">${escape(c.name)}</a> <span class="dim">(${escape(c.slug)})</span></td></tr>`
       ).join('');
 
+  const teamHref = withToken('/dashboard?view=team', t);
   const body = `
 <h1>scriptorium <span class="sep">/</span> collections</h1>
-<div class="crumbs">pick a collection</div>
+<div class="crumbs">pick a collection · or <a href="${escape(teamHref)}">team activity</a></div>
 <table><thead><tr><th>name</th></tr></thead><tbody>${items}</tbody></table>
 `;
   return shell('scriptorium', body);
+}
+
+export function renderTeamPage(t: TeamActivityResult, opts: DashboardOpts = {}): string {
+  const tk = opts.token;
+  const indexHref = withToken('/dashboard', tk);
+
+  const userRows = t.users.length === 0
+    ? `<tr><td colspan="7" class="empty">no users registered</td></tr>`
+    : t.users.map(u =>
+        `<tr><td>${escape(u.email ?? '?')}${u.name ? ` <span class="dim">(${escape(u.name)})</span>` : ''}</td><td>${escape(u.role ?? '-')}</td><td class="num">${u.active_tokens}</td><td class="num">${u.ingests}</td><td class="num">${u.searches}</td><td class="num">${u.page_reads}</td><td class="dim">${ago(u.last_active)}</td></tr>`
+      ).join('');
+
+  const unassignedRows = t.unassigned_actors.length === 0
+    ? `<tr><td colspan="3" class="empty">no unassigned actors</td></tr>`
+    : t.unassigned_actors.map(a =>
+        `<tr><td>${escape(a.actor)}</td><td class="num">${a.total}</td><td class="dim">${ago(a.last_active)}</td></tr>`
+      ).join('');
+
+  const actionRows = t.recent_actions.length === 0
+    ? `<tr><td colspan="5" class="empty">no recent actions</td></tr>`
+    : t.recent_actions.map(a => {
+        const collHref = a.collection ? withToken(`/dashboard?collection=${encodeURIComponent(a.collection)}`, tk) : null;
+        const summary = JSON.stringify(a.payload).slice(0, 80);
+        return `<tr><td class="dim">${escape(fmtDate(a.ts))}</td><td>${escape(a.kind)}</td><td>${escape(a.user_email ?? a.actor)}</td><td>${collHref ? `<a href="${escape(collHref)}">${escape(a.collection!)}</a>` : '<span class="dim">-</span>'}</td><td class="dim">${escape(summary)}</td></tr>`;
+      }).join('');
+
+  const body = `
+<h1>scriptorium <span class="sep">/</span> team <span class="meta">— ${t.window_days}d window · scope: ${escape(t.scope)}</span></h1>
+<div class="crumbs"><a href="${escape(indexHref)}">collections</a> <span class="bar">/</span> team</div>
+
+<h2>users</h2>
+<table><thead><tr><th>user</th><th>role</th><th>tokens</th><th>ingests</th><th>searches</th><th>reads</th><th>last active</th></tr></thead><tbody>${userRows}</tbody></table>
+
+<h2>unassigned actors (legacy tokens without a user)</h2>
+<table><thead><tr><th>actor (token name)</th><th>total actions</th><th>last active</th></tr></thead><tbody>${unassignedRows}</tbody></table>
+
+<h2>recent actions (last 30, ${t.window_days}d)</h2>
+<table><thead><tr><th>when</th><th>kind</th><th>by</th><th>collection</th><th>payload</th></tr></thead><tbody>${actionRows}</tbody></table>
+`;
+  return shell('scriptorium · team', body);
 }
 
 export interface PageDetailData {

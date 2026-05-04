@@ -44,8 +44,8 @@ export function registerSearch(server: McpServer, auth: AuthContext) {
       );
       // fire-and-forget search log
       query(
-        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-        [cid, 'search', auth.tokenName, {
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+        [cid, 'search', auth.tokenName, auth.userId, {
           query: q,
           result_count: r.rows.length,
           top_paths: r.rows.slice(0, 5).map(row => row.path),

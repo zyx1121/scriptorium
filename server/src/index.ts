@@ -4,8 +4,8 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createMcpServer } from './mcp/server.ts';
 import { verifyBearer, canAccessCollection, type AuthContext } from './auth/middleware.ts';
 import { query } from './db/client.ts';
-import { computeStats } from './stats.ts';
-import { renderDashboard, renderCollectionPicker, renderPageDetail } from './dashboard.ts';
+import { computeStats, computeTeamActivity } from './stats.ts';
+import { renderDashboard, renderCollectionPicker, renderPageDetail, renderTeamPage } from './dashboard.ts';
 import { rateLimit } from './rate-limit.ts';
 import { VERSION } from './version.ts';
 
@@ -72,9 +72,18 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
     return;
   }
 
+  const view = url.searchParams.get('view');
   const collection = url.searchParams.get('collection');
   const path = url.searchParams.get('path');
   const days = Math.max(1, Math.min(365, Number(url.searchParams.get('days') ?? '7') || 7));
+
+  if (view === 'team') {
+    const teamCollection = collection && canAccessCollection(auth, collection) ? collection : undefined;
+    const team = await computeTeamActivity({ collectionSlug: teamCollection, days });
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderTeamPage(team, { token: queryToken }));
+    return;
+  }
 
   if (!collection) {
     const r = await query<{ slug: string; name: string }>('SELECT slug, name FROM collections ORDER BY slug');

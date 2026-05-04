@@ -21,8 +21,8 @@ export function registerLog(server: McpServer, auth: AuthContext) {
       const cid = await getCollectionIdBySlug(auth, collection);
       if (!cid) return err('collection not found or not accessible');
       await query(
-        'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-        [cid, kind, auth.tokenName, payload]
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+        [cid, kind, auth.tokenName, auth.userId, payload]
       );
       return ok({ logged: true, kind });
     }

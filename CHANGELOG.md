@@ -4,6 +4,20 @@ All notable changes to **scriptorium** are documented here. Format follows [Keep
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-04
+
+### Added
+- **Users abstraction**. Migration 004 introduces a `users` table (id, email, name, role, created_at) with `role IN (admin | member | viewer)`. Each token can now be linked to a user via `tokens.user_id`, so a single human's mac + laptop + phone tokens aggregate to one identity.
+- `logs.actor_user_id` column — every state-changing action records both the token name (device label) and the user who owns it.
+- CLI: `user create / list / delete` + `token issue --user <email>`. Deleting a user revokes all their active tokens.
+- New MCP tool: `team_activity({ collection?, days? })` — per-user breakdown of ingests / searches / reads / last-active. Optionally scoped to a single collection.
+- Dashboard: collection view now has a **by user** section; new **team page** at `/dashboard?view=team` with cross-collection user activity, unassigned-token list, and recent-actions feed.
+- Auth context (`AuthContext`) carries `userId / userEmail / userName / userRole`, so future tools can do per-role permission checks without a second DB hit.
+
+### Migration notes
+- Migration 004 backfills the existing `loki-mac` token and its 13 historical log entries to a seeded `loki@winlab.tw` admin user. Other tokens not matching `loki%` stay unassigned (still functional, listed under "unassigned actors" on the team page).
+- Plugin clients on 0.3.0 keep working — `team_activity` is additive and the new dashboard sections are additive HTML.
+
 ## [0.3.0] — 2026-05-03
 
 ### Added

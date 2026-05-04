@@ -66,8 +66,8 @@ export function registerCollections(server: McpServer, auth: AuthContext) {
           );
 
           await client.query(
-            'INSERT INTO logs (collection_id, kind, actor, payload) VALUES ($1, $2, $3, $4)',
-            [cid, 'init', auth.tokenName, {}]
+            'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+            [cid, 'init', auth.tokenName, auth.userId, {}]
           );
 
           return cid;
@@ -116,8 +116,8 @@ export function registerCollections(server: McpServer, auth: AuthContext) {
       );
       if (r.rows.length === 0) return err(`collection not found: ${collection}`);
       await query(
-        'INSERT INTO logs (collection_id, kind, actor, payload) SELECT id, $1, $2, $3 FROM collections WHERE slug = $4',
-        ['schema_update', auth.tokenName, { schema_version: r.rows[0]!.schema_version }, collection]
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) SELECT id, $1, $2, $3, $4 FROM collections WHERE slug = $5',
+        ['schema_update', auth.tokenName, auth.userId, { schema_version: r.rows[0]!.schema_version }, collection]
       );
       return ok({ collection, schema_version: r.rows[0]!.schema_version });
     }
