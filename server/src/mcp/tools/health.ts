@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { query } from '../../db/client.ts';
 import { ok } from '../util.ts';
 import type { AuthContext } from '../../auth/middleware.ts';
+import { VERSION } from '../../version.ts';
 
 export function registerHealth(server: McpServer, auth: AuthContext) {
   server.registerTool(
@@ -19,7 +20,7 @@ export function registerHealth(server: McpServer, auth: AuthContext) {
       } catch {
         dbOk = false;
       }
-      return ok({ ok: true, db_ok: dbOk, version: '0.1.0' });
+      return ok({ ok: true, db_ok: dbOk, version: VERSION });
     }
   );
 

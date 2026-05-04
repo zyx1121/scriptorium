@@ -7,9 +7,9 @@ import { query } from './db/client.ts';
 import { computeStats } from './stats.ts';
 import { renderDashboard, renderCollectionPicker, renderPageDetail } from './dashboard.ts';
 import { rateLimit } from './rate-limit.ts';
+import { VERSION } from './version.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
-const VERSION = '0.3.0';
 
 interface SessionEntry {
   transport: StreamableHTTPServerTransport;
