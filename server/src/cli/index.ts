@@ -127,7 +127,10 @@ async function tokenIssue(flags: Record<string, string | string[]>) {
   }
 
   const colsArg = flags.collection;
-  const collections = Array.isArray(colsArg) ? colsArg : colsArg ? [colsArg as string] : [];
+  // Wildcard semantics live in `canAccessCollection` (length===0 → all).
+  // Strip literal '*' so `--collection '*'` is the same as omitting the flag.
+  const collections = (Array.isArray(colsArg) ? colsArg : colsArg ? [colsArg as string] : [])
+    .filter((s: string) => s !== '*');
 
   const expiresDays = flags['expires-days'];
   const expiresAt = expiresDays ? new Date(Date.now() + Number(expiresDays) * 86_400_000) : null;

@@ -61,7 +61,8 @@ export async function verifyBearer(authHeader: string | undefined): Promise<Auth
 
 export function canAccessCollection(ctx: AuthContext, slug: string): boolean {
   if (ctx.scopes.includes('admin')) return true;
-  if (ctx.collectionSlugs.length === 0) return true; // wildcard
+  // wildcard: empty array (canonical) or literal '*' (legacy / hand-rolled tokens)
+  if (ctx.collectionSlugs.length === 0 || ctx.collectionSlugs.includes('*')) return true;
   return ctx.collectionSlugs.includes(slug);
 }
 
