@@ -4,6 +4,45 @@ All notable changes to **scriptorium** are documented here. Format follows [Keep
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-06
+
+A security-and-hygiene release. Six items from the 0.4 review's "must-fix" list, eight more from "should-fix", three new operational guides. No new MCP tools, no schema migration that touches user data — just shoring up the foundations before piling on more features.
+
+### Security
+- **CLI `ADMIN_TOKEN` is now verified, not assumed.** Migration 005 introduces a `server_config` key/value table; `bun run migrate` hashes `ADMIN_TOKEN` and stores it. Subsequent CLI calls compare with `timingSafeEqual` and refuse if it doesn't match — `ADMIN_TOKEN=anything bun run cli` no longer mints admin tokens. Rotation procedure documented in `docs/operations.md`.
+- **`update_schema` now goes through `getCollectionIdBySlug`.** Audit log writes use the resolved `cid` directly instead of a sub-select that could miss on a race and leave NULL ghost rows.
+- **`append_log` rejects forged kinds.** Allowed values are the four documented workflow kinds (`ingest`, `recap`, `query`, `lint`) or anything prefixed `client:`. The five system kinds (`page_read`, `search`, `init`, `schema_update`, `delete_page`) are reserved — clients can't poison stats or cover their tracks.
+- **Dashboard cookie session.** `?token=<raw>` on first visit is swapped for an `HttpOnly Secure SameSite=Strict` cookie scoped to `/dashboard`, then redirected to a clean URL. Subsequent navigation is cookie-only — no token in browser history, no token in Referer, no token in the proxy access log past the initial redirect. `Secure` flag follows `X-Forwarded-Proto: https`. New `/dashboard/logout` clears the cookie.
+- **MCP session-init throttle.** Separate token bucket for new MCP sessions (5 burst, 5/min sustained) on top of the per-token request bucket (120 burst, 2 req/sec). Idle sessions sweep every 5 min, 30 min TTL — a leaked token spamming inits can no longer eat RAM forever.
+
+### Fixed
+- `IncidentSchema.detected_at` and `resolved_at` now require ISO 8601 datetimes (matching the per-page schema doc); previously `z.string()` accepted `"yesterday"`.
+- `lint` resolves wikilinks against full paths, not just basenames. `[[notes/foo]]` and `[[refs/foo]]` no longer collide; ambiguous basename links now surface as a `warning` instead of silently false-negative orphan checks.
+- `backup.sh` writes to a `.partial` tempfile and only renames on `size > 0`. If `pg_dump` and `docker` are both missing, the script fails loudly instead of producing a 0-byte `.pgdump` that gets rotated away in 14 days.
+- Rate-limit comment now describes capacity/refill correctly. `60 req/min` was always misleading wording for a token bucket.
+
+### Plugin
+- **SKILL.md connection check is now correct.** Five steps: `health` → `whoami` → `list_collections` → resolve active collection → `get_schema(collection)`. Previous flow called `get_schema` without ever resolving the slug.
+- **Stop hook removed.** Its stdout was never injected into Claude's context (different lifecycle to `UserPromptSubmit`); the nudge was a no-op. `recap-detector.sh` deleted; `intent-tagger.sh` on `UserPromptSubmit` now handles save-back signals exclusively.
+- `intent-tagger.sh` falls back to `jq` if `python3` is missing, with explicit untrusted-input warning at top of file.
+- Every reference doc (`init`, `ingest`, `query`, `lint`, `recap`) now has a "Pre-flight" reminder of the SKILL.md connection check, so progressive disclosure of a single ref doesn't bypass it.
+- `plugin.json` gets `keywords` for marketplace discovery.
+- `frontmatter-schemas.md` slug rule downgraded from "must" to "lint warning" — names with diacritics rarely round-trip kebab-cased.
+
+### Docs
+- New `docs/deploy.md` — production hardening: TLS at the edge, reverse proxy configs (Caddy / nginx / Cloudflare Tunnel), per-user token issuance, off-host backups.
+- New `docs/operations.md` — daily/weekly/monthly cadence: backup verify + restore-test, log retention, token rotation, admin rotation, server upgrades, monitoring patterns.
+- New `docs/disaster-recovery.md` — runbooks by severity: DB lost, server compromise, admin/member token leaked, schema corruption, page rollback. With actual SQL, not philosophy.
+- `SECURITY.md` gains a threat model section ("what we're defending against, what we're not"), updated hardening checklist, token rotation pointer.
+- `CONTRIBUTING.md` clarifies CLI invocation: same script, two contexts (`bun run cli` for local dev, `docker compose exec -T server bun run cli` for compose).
+
+### CI / tooling
+- `.github/dependabot.yml` weekly npm + docker base image scans, monthly GitHub Actions. Grouped PRs to keep noise down.
+
+### Migration notes
+- Migration 005 is additive (creates `server_config`). On first apply with a populated `ADMIN_TOKEN` env, the hash is seeded; subsequent migrate runs see "already set" and ignore the env. To rotate the admin token: `DELETE FROM server_config WHERE key='admin_token_hash'`, change the env, re-run migrate. See `docs/operations.md`.
+- Plugin clients on 0.4.x keep working — every change is server-internal or additive in the skill.
+
 ## [0.4.0] — 2026-05-04
 
 ### Added
@@ -63,6 +102,9 @@ All notable changes to **scriptorium** are documented here. Format follows [Keep
 - Three SCHEMA templates (default / research / team-knowledge) + index.md.
 - Dockerfile + `docker-compose.yml` + `.env.example`.
 
-[Unreleased]: https://github.com/zyx1121/scriptorium/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/zyx1121/scriptorium/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/zyx1121/scriptorium/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/zyx1121/scriptorium/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/zyx1121/scriptorium/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/zyx1121/scriptorium/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zyx1121/scriptorium/releases/tag/v0.1.0
