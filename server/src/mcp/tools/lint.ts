@@ -40,20 +40,47 @@ export function registerLint(server: McpServer, auth: AuthContext) {
       }
 
       const r = await query<{ path: string; content: string; frontmatter: any; updated_at: Date }>(pageQuery, params);
-      const pageMap = new Map(r.rows.map(p => [p.path, p]));
-      const slugSet = new Set(r.rows.map(p => p.path.replace(/\.md$/, '').split('/').pop()!));
+
+      // Resolve a wikilink target to a full page path. Two accepted forms:
+      //   [[notes/foo]]  → matches page path "notes/foo.md"
+      //   [[foo]]        → matches any page whose basename is "foo" (unique only)
+      // Same-named files in different folders disambiguate by full path.
+      const fullPathIndex = new Map<string, string>();   // "notes/foo" -> "notes/foo.md"
+      const basenameIndex = new Map<string, string[]>(); // "foo" -> ["notes/foo.md", "refs/foo.md"]
+      for (const p of r.rows) {
+        const noExt = p.path.replace(/\.md$/, '');
+        fullPathIndex.set(noExt, p.path);
+        const base = noExt.split('/').pop()!;
+        const bucket = basenameIndex.get(base) ?? [];
+        bucket.push(p.path);
+        basenameIndex.set(base, bucket);
+      }
+
+      function resolveLink(link: string): { resolved: string | null; ambiguous: boolean } {
+        const stripped = link.replace(/\.md$/, '');
+        const full = fullPathIndex.get(stripped);
+        if (full) return { resolved: full, ambiguous: false };
+        const matches = basenameIndex.get(stripped) ?? [];
+        if (matches.length === 1) return { resolved: matches[0]!, ambiguous: false };
+        if (matches.length > 1) return { resolved: null, ambiguous: true };
+        return { resolved: null, ambiguous: false };
+      }
 
       const issues: LintIssue[] = [];
-      const referencedSlugs = new Map<string, number>();
-      const incomingLinks = new Map<string, Set<string>>();
+      const incomingLinks = new Map<string, Set<string>>(); // target path -> set of pages linking in
 
       for (const page of r.rows) {
         const links = [...page.content.matchAll(WIKILINK_RE)].map(m => m[1]!);
         for (const link of links) {
-          referencedSlugs.set(link, (referencedSlugs.get(link) ?? 0) + 1);
-          if (!incomingLinks.has(link)) incomingLinks.set(link, new Set());
-          incomingLinks.get(link)!.add(page.path);
-          if (!slugSet.has(link)) {
+          const { resolved, ambiguous } = resolveLink(link);
+          if (resolved) {
+            const inc = incomingLinks.get(resolved) ?? new Set<string>();
+            inc.add(page.path);
+            incomingLinks.set(resolved, inc);
+          } else if (ambiguous) {
+            issues.push({ severity: 'warning', rule: 'ambiguous_wikilink', path: page.path,
+              detail: `[[${link}]] matches multiple pages by basename — use the full path to disambiguate` });
+          } else {
             issues.push({ severity: 'error', rule: 'dead_wikilink', path: page.path, detail: `[[${link}]] does not resolve` });
           }
         }
@@ -77,11 +104,10 @@ export function registerLint(server: McpServer, auth: AuthContext) {
         }
       }
 
-      // orphans (pages with no incoming wikilinks, excluding index)
+      // orphans: pages with no incoming wikilinks (excluding index).
       for (const page of r.rows) {
-        const slug = page.path.replace(/\.md$/, '').split('/').pop()!;
         if (page.path === 'index.md') continue;
-        if (!incomingLinks.has(slug)) {
+        if (!incomingLinks.has(page.path)) {
           issues.push({ severity: 'warning', rule: 'orphan', path: page.path, detail: 'no incoming wikilinks' });
         }
       }

@@ -1,3 +1,10 @@
+// Token bucket. `capacity` is max burst, `refillPerSec` is sustained throughput.
+// e.g. (capacity=120, refillPerSec=2)  → burst 120, sustain 2 req/sec.
+//      (capacity=5,   refillPerSec=5/60) → burst 5, sustain 5 req/min.
+//
+// Don't read `capacity` as "per minute" — that's only true if refillPerSec
+// happens to be capacity/60.
+
 interface Bucket {
   tokens: number;
   last: number;

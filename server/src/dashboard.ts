@@ -103,21 +103,9 @@ function shell(title: string, body: string): string {
 </html>`;
 }
 
-export interface DashboardOpts {
-  /** raw token to thread through links so navigation stays authenticated in the browser. */
-  token?: string;
-}
-
-function withToken(href: string, token?: string): string {
-  if (!token) return href;
-  const sep = href.includes('?') ? '&' : '?';
-  return `${href}${sep}token=${encodeURIComponent(token)}`;
-}
-
-export function renderDashboard(s: StatsResult, opts: DashboardOpts = {}): string {
-  const t = opts.token;
+export function renderDashboard(s: StatsResult): string {
   const pageHref = (path: string) =>
-    withToken(`/dashboard?collection=${encodeURIComponent(s.collection)}&path=${encodeURIComponent(path)}`, t);
+    `/dashboard?collection=${encodeURIComponent(s.collection)}&path=${encodeURIComponent(path)}`;
 
   const byType = Object.entries(s.by_type)
     .sort(([, a], [, b]) => b - a)
@@ -156,8 +144,8 @@ export function renderDashboard(s: StatsResult, opts: DashboardOpts = {}): strin
         `<tr><td><a href="${escape(pageHref(r.path))}">${escape(r.path)}</a></td><td class="dim">${escape(fmtDate(r.updated_at))}</td><td class="dim">${ago(r.last_read)}</td></tr>`
       ).join('');
 
-  const indexHref = withToken('/dashboard', t);
-  const collHref = withToken(`/dashboard?collection=${encodeURIComponent(s.collection)}`, t);
+  const indexHref = '/dashboard';
+  const collHref = `/dashboard?collection=${encodeURIComponent(s.collection)}`;
   const generated = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
   const body = `
@@ -202,15 +190,14 @@ export function renderDashboard(s: StatsResult, opts: DashboardOpts = {}): strin
   return shell(`scriptorium · ${s.collection}`, body);
 }
 
-export function renderCollectionPicker(opts: { collections: { slug: string; name: string }[]; token?: string }): string {
-  const t = opts.token;
+export function renderCollectionPicker(opts: { collections: { slug: string; name: string }[] }): string {
   const items = opts.collections.length === 0
     ? `<tr><td class="empty">(no collections accessible to this token)</td></tr>`
     : opts.collections.map(c =>
-        `<tr><td><a href="${escape(withToken(`/dashboard?collection=${encodeURIComponent(c.slug)}`, t))}">${escape(c.name)}</a> <span class="dim">(${escape(c.slug)})</span></td></tr>`
+        `<tr><td><a href="${escape(`/dashboard?collection=${encodeURIComponent(c.slug)}`)}">${escape(c.name)}</a> <span class="dim">(${escape(c.slug)})</span></td></tr>`
       ).join('');
 
-  const teamHref = withToken('/dashboard?view=team', t);
+  const teamHref = '/dashboard?view=team';
   const body = `
 <h1>scriptorium <span class="sep">/</span> collections</h1>
 <div class="crumbs">pick a collection · or <a href="${escape(teamHref)}">team activity</a></div>
@@ -219,9 +206,8 @@ export function renderCollectionPicker(opts: { collections: { slug: string; name
   return shell('scriptorium', body);
 }
 
-export function renderTeamPage(t: TeamActivityResult, opts: DashboardOpts = {}): string {
-  const tk = opts.token;
-  const indexHref = withToken('/dashboard', tk);
+export function renderTeamPage(t: TeamActivityResult): string {
+  const indexHref = '/dashboard';
 
   const userRows = t.users.length === 0
     ? `<tr><td colspan="7" class="empty">no users registered</td></tr>`
@@ -238,7 +224,7 @@ export function renderTeamPage(t: TeamActivityResult, opts: DashboardOpts = {}):
   const actionRows = t.recent_actions.length === 0
     ? `<tr><td colspan="5" class="empty">no recent actions</td></tr>`
     : t.recent_actions.map(a => {
-        const collHref = a.collection ? withToken(`/dashboard?collection=${encodeURIComponent(a.collection)}`, tk) : null;
+        const collHref = a.collection ? `/dashboard?collection=${encodeURIComponent(a.collection)}` : null;
         const summary = JSON.stringify(a.payload).slice(0, 80);
         return `<tr><td class="dim">${escape(fmtDate(a.ts))}</td><td>${escape(a.kind)}</td><td>${escape(a.user_email ?? a.actor)}</td><td>${collHref ? `<a href="${escape(collHref)}">${escape(a.collection!)}</a>` : '<span class="dim">-</span>'}</td><td class="dim">${escape(summary)}</td></tr>`;
       }).join('');
@@ -269,10 +255,9 @@ export interface PageDetailData {
   recent_reads: Array<{ ts: string; actor: string }>;
 }
 
-export function renderPageDetail(p: PageDetailData, opts: DashboardOpts = {}): string {
-  const t = opts.token;
-  const indexHref = withToken('/dashboard', t);
-  const collHref = withToken(`/dashboard?collection=${encodeURIComponent(p.collection)}`, t);
+export function renderPageDetail(p: PageDetailData): string {
+  const indexHref = '/dashboard';
+  const collHref = `/dashboard?collection=${encodeURIComponent(p.collection)}`;
 
   const fmRows = Object.entries(p.frontmatter)
     .map(([k, v]) => `<tr><th>${escape(k)}</th><td>${escape(typeof v === 'string' ? v : JSON.stringify(v))}</td></tr>`)

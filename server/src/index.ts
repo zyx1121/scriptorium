@@ -14,9 +14,22 @@ const PORT = Number(process.env.PORT ?? 8787);
 interface SessionEntry {
   transport: StreamableHTTPServerTransport;
   tokenId: number;
+  lastUsed: number;
 }
 
 const sessions = new Map<string, SessionEntry>();
+
+const SESSION_IDLE_MS = 30 * 60_000;
+const SESSION_SWEEP_MS = 5 * 60_000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [sid, entry] of sessions) {
+    if (now - entry.lastUsed > SESSION_IDLE_MS) {
+      try { entry.transport.close(); } catch { /* transport already gone */ }
+      sessions.delete(sid);
+    }
+  }
+}, SESSION_SWEEP_MS).unref();
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -53,6 +66,53 @@ async function handleWhoami(req: http.IncomingMessage, res: http.ServerResponse)
   });
 }
 
+const DASH_COOKIE = 'scriptorium_dash';
+const DASH_COOKIE_MAX_AGE = 12 * 60 * 60; // 12h
+
+function parseCookies(header: string | undefined): Record<string, string> {
+  if (!header) return {};
+  const out: Record<string, string> = {};
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq < 0) continue;
+    const k = part.slice(0, eq).trim();
+    const v = part.slice(eq + 1).trim();
+    if (k) {
+      try { out[k] = decodeURIComponent(v); } catch { out[k] = v; }
+    }
+  }
+  return out;
+}
+
+function isHttps(req: http.IncomingMessage): boolean {
+  if (req.headers['x-forwarded-proto'] === 'https') return true;
+  return (req.socket as { encrypted?: boolean }).encrypted === true;
+}
+
+function dashCookieValue(token: string, secure: boolean): string {
+  const parts = [
+    `${DASH_COOKIE}=${encodeURIComponent(token)}`,
+    'Path=/dashboard',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${DASH_COOKIE_MAX_AGE}`,
+  ];
+  if (secure) parts.push('Secure');
+  return parts.join('; ');
+}
+
+function clearDashCookie(secure: boolean): string {
+  const parts = [
+    `${DASH_COOKIE}=`,
+    'Path=/dashboard',
+    'HttpOnly',
+    'SameSite=Strict',
+    'Max-Age=0',
+  ];
+  if (secure) parts.push('Secure');
+  return parts.join('; ');
+}
+
 async function handleDashboard(req: http.IncomingMessage, res: http.ServerResponse) {
   const ip = (req.socket.remoteAddress ?? 'unknown').replace(/^::ffff:/, '');
   if (!rateLimit(`dash:${ip}`, 20, 1 / 3)) {
@@ -62,13 +122,44 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
   }
 
   const url = new URL(req.url!, `http://${req.headers.host ?? 'localhost'}`);
+  const secure = isHttps(req);
+
+  // Logout: clear cookie + redirect to bare /dashboard.
+  if (url.pathname === '/dashboard/logout') {
+    res.writeHead(303, { Location: '/dashboard', 'Set-Cookie': clearDashCookie(secure) });
+    res.end();
+    return;
+  }
+
+  // First-visit token swap: ?token=<raw> → set cookie, redirect to clean URL.
+  // The token still appears once in proxy access logs on this single request,
+  // but every subsequent navigation is cookie-only — no token in URL, history,
+  // or Referer.
+  const queryToken = url.searchParams.get('token');
+  if (queryToken) {
+    const probe = await verifyBearer(`Bearer ${queryToken}`);
+    if (!probe) {
+      res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Unauthorized — token invalid or expired');
+      return;
+    }
+    url.searchParams.delete('token');
+    const cleanUrl = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : '');
+    res.writeHead(303, { Location: cleanUrl, 'Set-Cookie': dashCookieValue(queryToken, secure) });
+    res.end();
+    return;
+  }
+
   let authHeader = req.headers.authorization;
-  const queryToken = url.searchParams.get('token') ?? undefined;
-  if (!authHeader && queryToken) authHeader = `Bearer ${queryToken}`;
+  if (!authHeader) {
+    const cookies = parseCookies(req.headers.cookie);
+    const fromCookie = cookies[DASH_COOKIE];
+    if (fromCookie) authHeader = `Bearer ${fromCookie}`;
+  }
   const auth = await verifyBearer(authHeader);
   if (!auth) {
     res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Unauthorized — pass Bearer header or ?token=<token>');
+    res.end('Unauthorized — append ?token=<token> once to set a session cookie, or send Authorization: Bearer');
     return;
   }
 
@@ -81,7 +172,7 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
     const teamCollection = collection && canAccessCollection(auth, collection) ? collection : undefined;
     const team = await computeTeamActivity({ collectionSlug: teamCollection, days });
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(renderTeamPage(team, { token: queryToken }));
+    res.end(renderTeamPage(team));
     return;
   }
 
@@ -89,7 +180,7 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
     const r = await query<{ slug: string; name: string }>('SELECT slug, name FROM collections ORDER BY slug');
     const visible = r.rows.filter(c => canAccessCollection(auth, c.slug));
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(renderCollectionPicker({ collections: visible, token: queryToken }));
+    res.end(renderCollectionPicker({ collections: visible }));
     return;
   }
 
@@ -129,7 +220,7 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
       version: row.version,
       updated_at: row.updated_at.toISOString(),
       recent_reads: reads.rows.map(r => ({ ts: r.ts.toISOString(), actor: r.actor })),
-    }, { token: queryToken }));
+    }));
     return;
   }
 
@@ -141,16 +232,18 @@ async function handleDashboard(req: http.IncomingMessage, res: http.ServerRespon
   }
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(renderDashboard(stats, { token: queryToken }));
+  res.end(renderDashboard(stats));
 }
 
 async function handleMcp(req: http.IncomingMessage, res: http.ServerResponse) {
   const auth = await verifyBearer(req.headers.authorization);
   if (!auth) return send(res, 401, { error: 'unauthorized' });
 
-  if (!rateLimit(`mcp:${auth.tokenId}`, 60, 1)) {
+  // General throttle: 120 burst, 2 req/sec sustained — covers a normal MCP
+  // turn (search → 3 get_pages → update → log) without thrashing.
+  if (!rateLimit(`mcp:${auth.tokenId}`, 120, 2)) {
     res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '1' });
-    res.end(JSON.stringify({ error: 'rate limited (60 req/min per token)' }));
+    res.end(JSON.stringify({ error: 'rate limited (120 burst, 2 req/sec sustained per token)' }));
     return;
   }
 
@@ -166,10 +259,18 @@ async function handleMcp(req: http.IncomingMessage, res: http.ServerResponse) {
     if (req.method !== 'POST') {
       return send(res, 400, { error: 'no valid session; initialize with POST first' });
     }
+    // Session creation is heavy (instantiates the full MCP server, registers
+    // every tool). Throttle it harder so a leaked token can't churn RAM by
+    // spamming inits without ever sending DELETE.
+    if (!rateLimit(`mcp:init:${auth.tokenId}`, 5, 5 / 60)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '12' });
+      res.end(JSON.stringify({ error: 'rate limited (session inits: 5 burst, 5 per minute sustained)' }));
+      return;
+    }
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (id: string) => {
-        sessions.set(id, { transport, tokenId: auth.tokenId });
+        sessions.set(id, { transport, tokenId: auth.tokenId, lastUsed: Date.now() });
       },
     });
     transport.onclose = () => {
@@ -178,7 +279,9 @@ async function handleMcp(req: http.IncomingMessage, res: http.ServerResponse) {
     };
     const mcp = createMcpServer(auth);
     await mcp.connect(transport);
-    entry = { transport, tokenId: auth.tokenId };
+    entry = { transport, tokenId: auth.tokenId, lastUsed: Date.now() };
+  } else {
+    entry.lastUsed = Date.now();
   }
 
   let body: unknown;
