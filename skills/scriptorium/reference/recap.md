@@ -1,5 +1,7 @@
 # `/scriptorium:recap` flow
 
+> **Pre-flight**: SKILL.md's connection check (`health` → `whoami` → `list_collections` → resolve active collection → `get_schema`) must run before saving any page.
+
 ## Purpose
 
 Save the durable insights from this session to the wiki before the conversation evaporates. Recap is the explicit save-back primitive.
@@ -8,7 +10,7 @@ Save the durable insights from this session to the wiki before the conversation 
 
 - After a long debugging / research / planning session that produced a non-trivial conclusion.
 - When the user said "actually save this" or "let's not lose this".
-- When the `Stop` hook flagged save-candidate signals (see `hooks/recap-detector.sh`).
+- When the `UserPromptSubmit` intent-tagger hook (`hooks/intent-tagger.sh`) injects a save-back hint into your context.
 
 ## Steps
 

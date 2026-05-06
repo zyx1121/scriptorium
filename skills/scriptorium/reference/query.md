@@ -1,5 +1,7 @@
 # `/scriptorium:query <question>` flow
 
+> **Pre-flight**: SKILL.md's connection check (`health` → `whoami` → `list_collections` → resolve active collection → `get_schema`) must run first. The schema lets you offer save-back as the right page type.
+
 ## Purpose
 
 Answer a question using the wiki, with citations. Optionally save the synthesised answer back as a new wiki page.

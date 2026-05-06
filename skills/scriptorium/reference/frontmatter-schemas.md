@@ -150,9 +150,10 @@ related_decisions: ["[[decision-slug]]", ...]
 
 - `created` ≤ `updated`.
 - `confidence: high` requires `sources.length >= 2`.
+- `incident.detected_at` and `resolved_at` must be ISO 8601 datetimes (e.g. `2026-05-04T14:32:00Z`); other date fields are `YYYY-MM-DD`.
 - All paths in `sources` should exist in `raw_sources` (warning if missing).
-- All `[[wikilinks]]` in `related` should resolve (lint error if dead).
-- Filename slug should match `frontmatter.title` after kebab-casing.
+- All `[[wikilinks]]` in `related` should resolve (lint **error** if dead, lint **warning** if `[[name]]` matches multiple pages by basename — disambiguate with the full path `[[folder/name]]`).
+- Filename slug should broadly match `frontmatter.title` kebab-cased (lint **warning**, not a hard reject — names with diacritics or punctuation rarely round-trip cleanly).
 
 ## Adding / changing a type
 

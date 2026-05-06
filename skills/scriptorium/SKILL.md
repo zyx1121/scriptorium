@@ -30,9 +30,13 @@ You write to layer 2 by calling **Scriptorium MCP tools**, not by writing files 
 ## Connection check (run BEFORE any operation)
 
 1. Call `scriptorium.health()` — verify the server is up and the DB is reachable.
-2. Call `scriptorium.whoami()` — confirm the bearer token is valid.
-3. Call `scriptorium.get_schema({ collection })` — load the active collection's `SCHEMA.md` into context.
-4. If 1–3 fail (likely missing env vars or expired token), run `/scriptorium:connect` to print setup instructions. Do not proceed with wiki ops.
+2. Call `scriptorium.whoami()` — confirm the bearer token is valid; note its scopes and accessible collections.
+3. Call `scriptorium.list_collections()` — see which slugs exist on this server.
+4. Resolve the **active collection** from the user's request (slug they named, or sole accessible slug, or ask them if ambiguous).
+5. Call `scriptorium.get_schema({ collection })` with the resolved slug — load the active collection's `SCHEMA.md` into context.
+6. If 1, 2, or 3 fail (likely missing env vars or expired token), run `/scriptorium:connect` to print setup instructions. Do not proceed with wiki ops.
+
+Skip step 5 only when the verb genuinely doesn't touch a single collection (e.g. `status` lists all of them).
 
 ## Operations
 

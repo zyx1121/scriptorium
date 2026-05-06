@@ -1,5 +1,7 @@
 # `/scriptorium:lint` flow
 
+> **Pre-flight**: SKILL.md's connection check must run first. `lint` itself only needs `health` + `whoami` + collection resolution; `get_schema` is recommended so fix proposals match current frontmatter rules.
+
 ## Purpose
 
 Find rot in the wiki. The wiki gets sicker over time — lint is the immune system.

@@ -1,5 +1,7 @@
 # `/scriptorium:init <name>` flow
 
+> **Pre-flight**: SKILL.md's connection check (`health` → `whoami` → `list_collections`) must have run earlier in this session. `init` doesn't need `get_schema` — the collection doesn't exist yet.
+
 ## Purpose
 
 Create a new wiki collection on the connected server.

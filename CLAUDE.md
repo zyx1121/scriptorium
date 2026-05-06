@@ -76,7 +76,7 @@ scriptorium/
 ### Plugin side
 
 - Slash commands are **thin** — they only delegate to the skill. All workflow lives in `skills/scriptorium/SKILL.md` + `reference/*`. Don't put logic in `commands/*.md`.
-- The skill must run a connection-check (call `scriptorium.health` then `scriptorium.get_schema`) before any wiki op.
+- The skill must run a connection-check before any wiki op: `scriptorium.health` → `scriptorium.whoami` → `scriptorium.list_collections` → resolve active collection → `scriptorium.get_schema({ collection })`. Only the last step is skipped for verbs that don't touch a single collection (e.g. `status`).
 - Detailed flow per verb lives in `skills/scriptorium/reference/<verb>.md`. Keep `SKILL.md` itself under ~250 lines (Claude reads it every time).
 - Hooks must stay **fast** (<1s) and **never block** (`set +e` + `exit 0` on any failure).
 

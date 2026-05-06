@@ -1,5 +1,7 @@
 # `/scriptorium:ingest <path|url>` flow
 
+> **Pre-flight**: SKILL.md's connection check (`health` → `whoami` → `list_collections` → resolve active collection → `get_schema`) must run before any page is created or updated. The schema is what makes `create_page` not 422 on the first attempt.
+
 ## Purpose
 
 Turn one source into many wiki pages. **A single ingest typically touches 5–15 pages.** Read this whole document before your first ingest of a session.
