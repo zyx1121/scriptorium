@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { query, withTransaction } from '../../db/client.ts';
 import { canAccessCollection, canWrite, type AuthContext } from '../../auth/middleware.ts';
-import { ok, err } from '../util.ts';
+import { ok, err, getCollectionIdBySlug } from '../util.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = join(__dirname, '..', '..', '..', 'templates');
@@ -108,16 +108,17 @@ export function registerCollections(server: McpServer, auth: AuthContext) {
     },
     async ({ collection, schema_md }) => {
       if (!canWrite(auth)) return err('write scope required');
-      if (!canAccessCollection(auth, collection)) return err('not accessible');
+      const cid = await getCollectionIdBySlug(auth, collection);
+      if (!cid) return err('collection not found or not accessible');
       const r = await query<{ schema_version: number }>(
         `UPDATE collections SET schema_md = $1, schema_version = schema_version + 1, updated_at = now()
-         WHERE slug = $2 RETURNING schema_version`,
-        [schema_md, collection]
+         WHERE id = $2 RETURNING schema_version`,
+        [schema_md, cid]
       );
       if (r.rows.length === 0) return err(`collection not found: ${collection}`);
       await query(
-        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) SELECT id, $1, $2, $3, $4 FROM collections WHERE slug = $5',
-        ['schema_update', auth.tokenName, auth.userId, { schema_version: r.rows[0]!.schema_version }, collection]
+        'INSERT INTO logs (collection_id, kind, actor, actor_user_id, payload) VALUES ($1, $2, $3, $4, $5)',
+        [cid, 'schema_update', auth.tokenName, auth.userId, { schema_version: r.rows[0]!.schema_version }]
       );
       return ok({ collection, schema_version: r.rows[0]!.schema_version });
     }

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool, query } from './client.ts';
+import { hashToken } from '../auth/middleware.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, 'migrations');
@@ -18,6 +19,28 @@ async function ensureTable() {
 async function applied(): Promise<Set<string>> {
   const r = await query<{ filename: string }>('SELECT filename FROM migrations');
   return new Set(r.rows.map(row => row.filename));
+}
+
+async function seedAdminTokenHash() {
+  const raw = process.env.ADMIN_TOKEN?.trim();
+  if (!raw) {
+    console.warn('[migrate] ADMIN_TOKEN not set in env — admin CLI will refuse to run until it is.');
+    return;
+  }
+  const hash = hashToken(raw);
+  // Only seed once. Rotating is an explicit op (DELETE + re-migrate) — see OPERATIONS.md.
+  const r = await query<{ key: string }>(
+    `INSERT INTO server_config (key, value)
+     VALUES ('admin_token_hash', $1)
+     ON CONFLICT (key) DO NOTHING
+     RETURNING key`,
+    [hash]
+  );
+  if (r.rowCount && r.rowCount > 0) {
+    console.log('[migrate] seeded admin_token_hash from ADMIN_TOKEN env');
+  } else {
+    console.log('[migrate] admin_token_hash already set; ignoring ADMIN_TOKEN env (rotate via OPERATIONS.md)');
+  }
 }
 
 async function main() {
@@ -47,6 +70,8 @@ async function main() {
       client.release();
     }
   }
+
+  await seedAdminTokenHash();
 
   await pool.end();
   console.log('[migrate] done');

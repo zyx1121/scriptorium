@@ -1,16 +1,33 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { pool, query } from '../db/client.ts';
 import { hashToken } from '../auth/middleware.ts';
-
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 function fail(msg: string): never {
   console.error(`error: ${msg}`);
   process.exit(1);
 }
 
-function requireAdmin() {
-  if (!ADMIN_TOKEN) fail('ADMIN_TOKEN env var must be set to run the CLI');
+let adminVerified = false;
+
+async function requireAdmin() {
+  if (adminVerified) return;
+  const raw = process.env.ADMIN_TOKEN?.trim();
+  if (!raw) fail('ADMIN_TOKEN env var must be set to run the CLI');
+  const got = hashToken(raw);
+  const r = await query<{ value: string }>(
+    `SELECT value FROM server_config WHERE key = 'admin_token_hash'`
+  );
+  const stored = r.rows[0]?.value;
+  if (!stored) {
+    fail('admin_token_hash is not seeded — run `bun run migrate` with ADMIN_TOKEN set first');
+  }
+  // Length is fixed (hex sha256) so length-leak doesn't matter, but use timing-safe regardless.
+  const a = Buffer.from(got, 'utf8');
+  const b = Buffer.from(stored, 'utf8');
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    fail('ADMIN_TOKEN does not match the seeded hash — see OPERATIONS.md to rotate');
+  }
+  adminVerified = true;
 }
 
 function parseFlags(argv: string[]): Record<string, string | string[]> {
@@ -41,7 +58,7 @@ function parseFlags(argv: string[]): Record<string, string | string[]> {
 // ----- users -----
 
 async function userCreate(flags: Record<string, string | string[]>) {
-  requireAdmin();
+  await requireAdmin();
   const email = flags.email as string | undefined;
   const name = flags.name as string | undefined;
   const role = (flags.role as string | undefined) ?? 'member';
@@ -62,7 +79,7 @@ async function userCreate(flags: Record<string, string | string[]>) {
 }
 
 async function userList() {
-  requireAdmin();
+  await requireAdmin();
   const r = await query<{
     id: number; email: string; name: string | null; role: string; created_at: Date;
     token_count: string; last_active: Date | null;
@@ -83,7 +100,7 @@ async function userList() {
 }
 
 async function userDelete(flags: Record<string, string | string[]>) {
-  requireAdmin();
+  await requireAdmin();
   const email = flags.email as string | undefined;
   if (!email) fail('--email <user-email> required');
   const u = await query<{ id: number }>('SELECT id FROM users WHERE email = $1', [email]);
@@ -99,7 +116,7 @@ async function userDelete(flags: Record<string, string | string[]>) {
 // ----- tokens -----
 
 async function tokenIssue(flags: Record<string, string | string[]>) {
-  requireAdmin();
+  await requireAdmin();
   const name = flags.name as string | undefined;
   if (!name) fail('--name <token-name> required (a device label, e.g. alice-mac)');
 
@@ -148,7 +165,7 @@ async function tokenIssue(flags: Record<string, string | string[]>) {
 }
 
 async function tokenList() {
-  requireAdmin();
+  await requireAdmin();
   const r = await query<{
     id: number; name: string; scopes: string[]; collection_slugs: string[];
     created_at: Date; expires_at: Date | null; revoked_at: Date | null;
@@ -170,7 +187,7 @@ async function tokenList() {
 }
 
 async function tokenRevoke(flags: Record<string, string | string[]>) {
-  requireAdmin();
+  await requireAdmin();
   const id = flags.id as string | undefined;
   if (!id) fail('--id <token-id> required');
   const r = await query('UPDATE tokens SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL', [Number(id)]);
