@@ -15,6 +15,17 @@ bun run dev            # server on :8787
 
 For end-to-end testing with Postgres, prefer `docker compose up -d`.
 
+## Running the CLI
+
+The same script runs in two contexts. Pick whichever matches how you started the server:
+
+| Context | Command (run from `server/`) |
+|---|---|
+| Local dev (`bun run dev`) | `bun run cli token list` |
+| Docker compose | `docker compose exec -T server bun run cli token list` |
+
+Both invoke `bun src/cli/index.ts`. The CLI verifies `ADMIN_TOKEN` against `server_config.admin_token_hash` (seeded by `bun run migrate` on first run); set `ADMIN_TOKEN` in `.env` to whatever was used at first migrate, or rotate per [`docs/operations.md`](docs/operations.md#rotation).
+
 ## Project layout
 
 See `CLAUDE.md` (root) for the full repo map. TL;DR:
