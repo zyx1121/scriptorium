@@ -19,7 +19,11 @@ interface SessionEntry {
 
 const sessions = new Map<string, SessionEntry>();
 
-const SESSION_IDLE_MS = 30 * 60_000;
+// 8 hr covers a normal Claude Code working session — long-idle (think → batch)
+// patterns won't lose their session and trip "Server not initialized". Upper
+// bound is also the worst-case lag for a revoked token to stop working via an
+// already-open session, so don't push this much higher without rotating it.
+const SESSION_IDLE_MS = 8 * 60 * 60_000;
 const SESSION_SWEEP_MS = 5 * 60_000;
 setInterval(() => {
   const now = Date.now();
@@ -253,6 +257,15 @@ async function handleMcp(req: http.IncomingMessage, res: http.ServerResponse) {
 
   if (entry && entry.tokenId !== auth.tokenId) {
     return send(res, 403, { error: 'session does not belong to this token' });
+  }
+
+  // Stale session-id (client kept it across an idle sweep). Per MCP spec, return
+  // 404 so the client knows to drop the id and reinitialize — never silently
+  // create a new transport here, because the new transport hasn't seen an
+  // `initialize` request yet and will reject every subsequent tool call with
+  // "Server not initialized".
+  if (sessionId && !entry) {
+    return send(res, 404, { error: 'session expired or unknown; reinitialize without mcp-session-id' });
   }
 
   if (!entry) {
