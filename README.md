@@ -16,12 +16,15 @@ This repo is the **engine** (public, no personal content). Your agent's
 **instance** — `CANON.md`, `memory/`, your skills — lives in *your own* private
 repo, located via `SCRIPTORIUM_HOME`.
 
-## Install *(planned — S0/S1)*
+## Install
+
+Requires **Claude Code ≥ 2.1.186** (older versions reject the plugin's
+root-relative `source`). Check with `claude --version`; `claude update` if needed.
 
 ```bash
 # Claude Code (plugin)
 claude plugin marketplace add zyx1121/scriptorium
-claude plugin install scriptorium
+claude plugin install scriptorium@scriptorium
 
 # point at an instance, or scaffold a fresh one
 export SCRIPTORIUM_HOME=~/my-agent
@@ -45,5 +48,18 @@ bin/codex-bind.sh
 
 ---
 
-**Status: S0 — scaffolding the engine.** Migrating the working parts out of
-`zyx1121/kilo` (which becomes the first private *instance*).
+## Status
+
+- **S0 ✅** engine scaffolded — four offices, 41 tests green.
+- **S1 ✅** verified installable on a clean VM — plugin install + `init` + a real
+  CC session auto-firing hooks into a fresh instance.
+- **S2 ✅** migration verified on a live instance (PVE `kilo`: 21 skills, 63
+  memories) — `CANON.md → KILO.md` symlink, engine reads the real persona, hooks
+  write to the real `data/`, all additive: old binding (KILO.md, Codex) untouched,
+  zero git pollution.
+- **S3 — todo:** migrate the Mac core. Pending cleanups surfaced en route:
+  drop the duplicate `method` skill from instances (engine ships it); the dead
+  `growth/review.py`; converge `nudge.py`.
+
+Migrating the working parts out of `zyx1121/kilo`, which becomes the first
+private *instance*.
