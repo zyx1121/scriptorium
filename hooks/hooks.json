@@ -1,0 +1,28 @@
+{
+  "description": "scriptorium engine — scribe observation + method router + corrector trigger, wired to the Claude Code / Codex lifecycle.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "echo 'Method router (/method) active. Before any non-trivial coding/decision task, invoke the method skill FIRST to classify and emit [METHOD: <name>]. Trivial single-action tasks fall through silently.'" },
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill|Task",
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
+        ]
+      }
+    ]
+  }
+}
