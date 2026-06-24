@@ -34,16 +34,44 @@ class BuildRowsTest(unittest.TestCase):
     def test_rows_sorted_and_warns_missing_title(self):
         with TemporaryDirectory() as d:
             mem = Path(d)
-            (mem / "b_two.md").write_text('---\ntitle: Two\ndescription: second\n---\nx')
-            (mem / "a_one.md").write_text('---\ntitle: One\ndescription: first\n---\nx')
-            (mem / "c_notitle.md").write_text("no frontmatter here")
+            (mem / "feedback_b.md").write_text('---\ntitle: Two\ndescription: second\ntype: feedback\n---\nx')
+            (mem / "feedback_a.md").write_text('---\ntitle: One\ndescription: first\ntype: feedback\n---\nx')
+            (mem / "feedback_c.md").write_text('---\ndescription: no title\ntype: feedback\n---\nx')
             (mem / "MEMORY.md").write_text("(old index — must be skipped)")
             rows, warn = gmi.build_rows(mem)
-            self.assertEqual(rows[0], "- [One](a_one.md) — first")     # sorted by filename
-            self.assertEqual(rows[1], "- [Two](b_two.md) — second")
-            self.assertEqual(rows[2], "- [c_notitle](c_notitle.md) — ")  # stem fallback, empty desc
-            self.assertEqual(warn, ["c_notitle.md"])                   # flagged missing title
-            self.assertEqual(len(rows), 3)                             # MEMORY.md excluded
+            self.assertEqual(rows[0], "- [One](feedback_a.md) — first")      # sorted by filename
+            self.assertEqual(rows[1], "- [Two](feedback_b.md) — second")
+            self.assertEqual(rows[2], "- [feedback_c](feedback_c.md) — no title")  # stem fallback
+            self.assertEqual(warn["missing-title"], ["feedback_c.md"])
+            self.assertEqual(warn["bad-type"], [])                           # type=feedback matches prefix
+            self.assertEqual(len(rows), 3)                                   # MEMORY.md excluded
+
+
+class LintTest(unittest.TestCase):
+    def test_bad_type_prefix_mismatch_and_nested_ok(self):
+        with TemporaryDirectory() as d:
+            mem = Path(d)
+            (mem / "project_x.md").write_text('---\ntitle: X\ntype: reference\n---\nb')          # prefix != type
+            (mem / "reference_y.md").write_text('---\ntitle: Y\nmetadata:\n  type: reference\n---\nb')  # nested OK
+            _, warn = gmi.build_rows(mem)
+            self.assertIn("project_x.md(prefix=project, type=reference)", warn["bad-type"])
+            self.assertNotIn("reference_y", " ".join(warn["bad-type"]))      # metadata.type accepted
+
+    def test_missing_type_flagged(self):
+        with TemporaryDirectory() as d:
+            mem = Path(d)
+            (mem / "feedback_a.md").write_text('---\ntitle: A\n---\nb')      # no type at all
+            _, warn = gmi.build_rows(mem)
+            self.assertIn("feedback_a.md(prefix=feedback, type=None)", warn["bad-type"])
+
+    def test_orphan_wikilink_flags_naming_drift(self):
+        with TemporaryDirectory() as d:
+            mem = Path(d)
+            (mem / "project_a.md").write_text('---\ntitle: A\ntype: project\n---\nsee [[project_b]] and [[project-a]]')
+            (mem / "project_b.md").write_text('---\ntitle: B\ntype: project\n---\nx')
+            _, warn = gmi.build_rows(mem)
+            # [[project_b]] resolves; [[project-a]] does not (real stem uses '_') -> naming drift
+            self.assertEqual(warn["orphan-link"], ["project_a.md→[[project-a]]"])
 
 
 class GenIndexCliTest(unittest.TestCase):
