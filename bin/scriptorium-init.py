@@ -12,6 +12,9 @@ import os
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # engine root onto path
+from armarium import gen_memory_index as gmi  # noqa: E402
+
 CANON_TEMPLATE = """# CANON — <name your agent>
 
 > The unchanging core: who this agent is. Hand-written by you; the engine
@@ -27,11 +30,6 @@ CANON_TEMPLATE = """# CANON — <name your agent>
 <hard rules it must never break — safety, scope, what to confirm before doing>
 """
 
-MEMORY_INDEX = (
-    "# MEMORY — index\n\n"
-    "> One line per memory; the full entry lives in `memory/<name>.md`. "
-    "The scribe appends here as it learns; the corrector consolidates.\n"
-)
 
 
 def instance_home() -> Path:
@@ -53,7 +51,10 @@ def main() -> int:
         created.append("CANON.md")
     idx = home / "memory" / "MEMORY.md"
     if not idx.exists():
-        idx.write_text(MEMORY_INDEX, encoding="utf-8")
+        # Generate the canonical (empty) index — same format memory-sync rebuilds,
+        # so the first sync won't silently rewrite a hand-shaped template.
+        rows, _ = gmi.build_rows(home / "memory")
+        idx.write_text("\n".join(rows) + "\n", encoding="utf-8")
         created.append("memory/MEMORY.md")
 
     print(f"scriptorium instance ready at {home}")

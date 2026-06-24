@@ -1,5 +1,5 @@
 {
-  "description": "scriptorium engine — scribe observation + method router + corrector trigger, wired to the Claude Code / Codex lifecycle.",
+  "description": "scriptorium engine — Scribe observation + method router + Corrector trigger + Armarium memory-sync, wired to the Claude Code / Codex lifecycle.",
   "hooks": {
     "SessionStart": [
       {
@@ -15,12 +15,19 @@
         "hooks": [
           { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
         ]
+      },
+      {
+        "matcher": "Write|Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/observe.py\"" }
+        ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" },
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/armarium/memory-sync.sh\"" }
         ]
       }
     ]

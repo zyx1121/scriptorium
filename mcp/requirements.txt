@@ -1,0 +1,3 @@
+# scriptorium MCP server — recall/remember over the instance's memory.
+# Install into the engine's venv:  python3 -m venv .venv && .venv/bin/pip install -r mcp/requirements.txt
+mcp>=1.0

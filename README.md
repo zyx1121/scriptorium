@@ -30,27 +30,35 @@ claude plugin install scriptorium@scriptorium
 export SCRIPTORIUM_HOME=~/my-agent
 scriptorium init "$SCRIPTORIUM_HOME"
 
-# Codex (doesn't load CC plugins)
+# Codex (doesn't load CC plugins): identity + the recall/remember MCP
 bin/codex-bind.sh
+python3 -m venv .venv && .venv/bin/pip install -r mcp/requirements.txt
+codex mcp add scriptorium --env SCRIPTORIUM_HOME="$SCRIPTORIUM_HOME" -- \
+  "$PWD/.venv/bin/python" "$PWD/mcp/scriptorium_mcp.py"
 ```
 
 ## Layout
 
-| Dir | Office | Role |
-|-----|--------|------|
-| `armarium/` | Armarium | persistence · sync · index · canon binding |
-| `scribe/` | Scribe | observation → authoring new memory/skills |
-| `corrector/` | Corrector | calibrate · consolidate · promote existing |
-| `skills/` | — | engine skills (`method`, `dreaming`, `review`) |
-| `hooks/` | — | wires the offices to CC/Codex lifecycle events |
-| `commands/` | — | `/scriptorium-init`, … |
-| `bin/` | — | install + Codex-binding scripts |
+| Dir | Office | Role | Pieces |
+|-----|--------|------|--------|
+| `armarium/` | Armarium | persistence · sync · index · path map | `paths.py` · `memory-sync.sh` · `gen_memory_index.py` |
+| `scribe/` | Scribe | observe signal → author new memory/skills | `events.py` (session/skill/method-route) · `observe.py` (scripts) |
+| `corrector/` | Corrector | calibrate · consolidate existing (propose-only) | `skill_review.py` · `skills/dreaming` |
+| `mcp/` | — | portable memory MCP | `scriptorium_mcp.py` (recall / remember) |
+| `skills/` | — | engine skills | `method` · `dreaming` |
+| `hooks/` | — | wires offices to CC/Codex lifecycle | `hooks.json` |
+| `commands/`, `bin/` | — | `/scriptorium-init` · install + Codex binding | |
 
 ---
 
 ## Status
 
 - **S0 ✅** engine scaffolded — four offices, 41 tests green.
+- **Engine feature-complete ✅** — Armarium (memory-sync + index), Scribe (observe
+  + events + method-route), Corrector (skill-review + dreaming), MCP (recall /
+  remember). **73 tests green.** Migrated out of `kilo` and de-personalized:
+  daemon-only MCP tools (Telegram / mail / scheduler) deliberately left in the
+  instance, not the public engine.
 - **S1 ✅** verified installable on a clean VM — plugin install + `init` + a real
   CC session auto-firing hooks into a fresh instance.
 - **S2 ✅** migration verified on a live instance (PVE `kilo`: 21 skills, 63
