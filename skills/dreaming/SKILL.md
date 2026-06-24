@@ -35,7 +35,7 @@ description: "Memory consolidation — 整理整個 instance memory($SCRIPTORIUM
 - 改完可 `claude -p` 開新 session 驗證 recall / skill 載入。
 
 ## Canonical frontmatter(規範對齊基準)
-每篇 memory:`name`(= 檔名去 `.md`)、`title`(一行短標籤)、`description`(具體到下次任務 match 得到)、`type`(`feedback` / `project` / `reference` / `user`,對齊檔名前綴)。wiki-link 一律用實檔名(底線),`[[name]]` 要解得到。
+每篇 memory:`name`(= 檔名去 `.md`)、`title`(一行短標籤)、`description`(**用雙引號包** —— 裸值會被 Claude Code 的 memory normalizer 截斷;具體到下次任務 match 得到)、`type`(`feedback` / `project` / `reference` / `user`,對齊檔名前綴)。wiki-link 一律用實檔名(底線),`[[name]]` 要解得到。
 
 ## 判準(別違反)
 - **一檔一事**、frontmatter 齊(`title` + `type` + 具體 `description`)。

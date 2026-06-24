@@ -73,6 +73,15 @@ class LintTest(unittest.TestCase):
             # [[project_b]] resolves; [[project-a]] does not (real stem uses '_') -> naming drift
             self.assertEqual(warn["orphan-link"], ["project_a.md→[[project-a]]"])
 
+    def test_unquoted_description_flagged(self):
+        with TemporaryDirectory() as d:
+            mem = Path(d)
+            (mem / "feedback_q.md").write_text('---\ntitle: Q\ndescription: "quoted ok"\ntype: feedback\n---\nx')
+            (mem / "feedback_u.md").write_text('---\ntitle: U\ndescription: bare value\ntype: feedback\n---\nx')
+            _, warn = gmi.build_rows(mem)
+            self.assertEqual(warn["unquoted-desc"], ["feedback_u.md"])
+            self.assertEqual(warn["missing-title"], [])
+
 
 class GenIndexCliTest(unittest.TestCase):
     def test_writes_index_file(self):

@@ -16,6 +16,8 @@ never auto-mutates (mutating hand-written memory stays human/dreaming-gated):
   - bad-type      : `type:` absent/invalid, or mismatching the filename prefix
   - orphan-link   : a `[[wikilink]]` whose target is not an existing memory file
                     (catches `-`/`_` naming drift as well as truly dangling refs)
+  - unquoted-desc : a bare (unquoted) `description:` scalar — Claude Code's memory
+                    normalizer truncates these; wrap the value in double quotes
 
 Usage:  gen_memory_index.py [MEMORY_DIR]   (defaults to SCRIPTORIUM_HOME/memory)
 """
@@ -30,6 +32,7 @@ KEY_RE = re.compile(r"^(title|description):\s*(.*)$")
 # ignoring leading indentation (instance corpora use both shapes historically).
 TYPE_RE = re.compile(r"^\s*type:\s*([A-Za-z]+)\s*$", re.M)
 WIKILINK_RE = re.compile(r"\[\[([^\]\|]+?)\]\]")
+DESC_RE = re.compile(r"^description:\s*(.*)$", re.M)
 VALID_TYPES = ("feedback", "project", "reference", "user")
 
 
@@ -76,7 +79,7 @@ def build_rows(mem_dir: Path) -> tuple[list[str], dict[str, list[str]]]:
     files = [p for p in sorted(mem_dir.glob("*.md")) if p.name != "MEMORY.md"]
     stems = {p.stem for p in files}
     rows: list[str] = []
-    warn: dict[str, list[str]] = {"missing-title": [], "bad-type": [], "orphan-link": []}
+    warn: dict[str, list[str]] = {"missing-title": [], "bad-type": [], "orphan-link": [], "unquoted-desc": []}
     for p in files:
         text = p.read_text(encoding="utf-8")
         fm = frontmatter(text)
@@ -86,6 +89,9 @@ def build_rows(mem_dir: Path) -> tuple[list[str], dict[str, list[str]]]:
         tval = type_of(text)
         if tval not in VALID_TYPES or (prefix in VALID_TYPES and prefix != tval):
             warn["bad-type"].append(f"{p.name}(prefix={prefix}, type={tval})")
+        dm = DESC_RE.search(_fm_block(text))
+        if dm and dm.group(1).strip() and not dm.group(1).strip().startswith('"'):
+            warn["unquoted-desc"].append(p.name)
         for m in WIKILINK_RE.finditer(text):
             tgt = m.group(1).strip()
             if tgt not in stems:
