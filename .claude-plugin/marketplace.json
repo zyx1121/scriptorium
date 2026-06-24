@@ -3,7 +3,7 @@
   "owner": { "name": "zyx1121", "url": "https://github.com/zyx1121" },
   "metadata": {
     "description": "The scriptorium engine — a self-evolving agent layer over Claude Code / Codex.",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {
