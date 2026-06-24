@@ -37,8 +37,8 @@ rollback and audit. Pure infrastructure — produces nothing, digests nothing.
 
 ### Scribe — *self-authoring*
 The copyist. Turns raw signal (sessions, tool usage) into **new** manuscripts —
-proposing or writing new memory, skills, and agents. From nothing to something.
-- observation (events / observe) · extraction.
+proposing new skills and agents. From nothing to something.
+- observation (events / observe) · authoring (`author.py` → `staged/`, propose-only).
 
 ### Corrector — *self-review*
 The proof-reader. Tends **existing** manuscripts — calibrating skills and agents,
