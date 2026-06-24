@@ -2,9 +2,9 @@
 """scriptorium init — scaffold a fresh INSTANCE at SCRIPTORIUM_HOME (or argv[1]).
 
 Creates the manuscript skeleton the engine reads: CANON.md + memory/ + skills/ +
-data/ + state/ + staged/. Idempotent — never clobbers an existing CANON.md or
-memory index. This is what makes "install the engine, then start using it" true:
-the engine is empty until an instance exists for it to tend.
+agents/ + data/ + state/ + staged/. Idempotent — never clobbers an existing
+CANON.md or memory index. This is what makes "install the engine, then start
+using it" true: the engine is empty until an instance exists for it to tend.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def instance_home() -> Path:
 
 def main() -> int:
     home = instance_home()
-    for d in ("memory", "skills", "data/events", "state", "staged"):
+    for d in ("memory", "skills", "agents", "data/events", "state", "staged"):
         (home / d).mkdir(parents=True, exist_ok=True)
 
     created = []
