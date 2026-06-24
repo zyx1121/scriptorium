@@ -82,7 +82,7 @@ def build_rows(mem_dir: Path) -> tuple[list[str], dict[str, list[str]]]:
         fm = frontmatter(text)
         if not fm.get("title"):
             warn["missing-title"].append(p.name)
-        prefix = re.split(r"[_-]", p.stem, 1)[0]
+        prefix = re.split(r"[_-]", p.stem, maxsplit=1)[0]
         tval = type_of(text)
         if tval not in VALID_TYPES or (prefix in VALID_TYPES and prefix != tval):
             warn["bad-type"].append(f"{p.name}(prefix={prefix}, type={tval})")

@@ -1,6 +1,6 @@
 {
   "name": "scriptorium",
   "description": "Self-evolving agent layer over Claude Code / Codex. The engine — Armarium (persistence & sync), Scribe (self-authoring), Corrector (self-review) — tending a Canon-defined instance. Bring your own instance via SCRIPTORIUM_HOME, or `scriptorium init` a fresh one.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": { "name": "zyx1121", "url": "https://github.com/zyx1121" }
 }
