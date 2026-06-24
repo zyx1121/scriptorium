@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # engine root onto path
 from armarium import paths            # noqa: E402
 from corrector import skill_review    # noqa: E402
+from corrector import agent_review    # noqa: E402
 
 CONFIG_FILE = Path.home() / ".claude" / "scriptorium.local.md"
 OBSERVE_RE = re.compile(r"^\s*observe\s*:\s*(\w+)\s*$", re.MULTILINE)
@@ -174,10 +175,16 @@ def main() -> int:
         except Exception:
             pass
 
-    # corrector counter: bump on skill use; at threshold it spawns a detached review.
+    # corrector counters: bump on skill use / worker spawn; at threshold each spawns
+    # a detached review of that manuscript (skills & agents tended symmetrically).
     if record and record.get("tool") == "Skill" and record.get("name"):
         try:
             skill_review.maybe_trigger(record["name"])
+        except Exception:
+            pass
+    if record and record.get("tool") == "Task" and record.get("subagent"):
+        try:
+            agent_review.maybe_trigger(record["subagent"])
         except Exception:
             pass
     return 0

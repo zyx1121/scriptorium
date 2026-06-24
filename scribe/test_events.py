@@ -181,6 +181,17 @@ class BuildRecordTest(unittest.TestCase):
     def test_non_skill_tool_ignored(self):
         self.assertIsNone(ev._build_record({"hook_event_name": "PostToolUse", "tool_name": "Read"}))
 
+    def test_task_tool(self):
+        r = ev._build_record({"hook_event_name": "PostToolUse", "tool_name": "Task",
+                              "tool_input": {"subagent_type": "developer"}, "tool_response": {}})
+        self.assertEqual((r["kind"], r["tool"], r["subagent"], r["ok"]), ("tool", "Task", "developer", True))
+
+    def test_task_tool_empty_subagent_stays_falsy(self):
+        # empty subagent must stay falsy so events.main() won't fire an agent review
+        r = ev._build_record({"hook_event_name": "PostToolUse", "tool_name": "Task",
+                              "tool_input": {}, "tool_response": {}})
+        self.assertFalse(r["subagent"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

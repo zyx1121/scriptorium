@@ -36,6 +36,7 @@ def engine_root() -> Path:
 def canon() -> Path:        return instance_home() / "CANON.md"          # identity
 def memory_dir() -> Path:   return instance_home() / "memory"            # durable facts
 def skills_dir() -> Path:   return instance_home() / "skills"            # personal (instance) skills
+def agents_dir() -> Path:   return instance_home() / "agents"            # delegation fleet (4th manuscript)
 def data_dir() -> Path:     return instance_home() / "data"
 def events_dir() -> Path:   return data_dir() / "events"                 # scribe's signal log
 def state_dir() -> Path:    return instance_home() / "state"             # office working state

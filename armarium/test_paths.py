@@ -48,6 +48,7 @@ class InstanceHomeTest(_EnvGuard):
         self.assertEqual(paths.canon(), Path("/tmp/inst/CANON.md"))
         self.assertEqual(paths.memory_dir(), Path("/tmp/inst/memory"))
         self.assertEqual(paths.skills_dir(), Path("/tmp/inst/skills"))
+        self.assertEqual(paths.agents_dir(), Path("/tmp/inst/agents"))
         self.assertEqual(paths.events_dir(), Path("/tmp/inst/data/events"))
         self.assertEqual(paths.staged_dir(), Path("/tmp/inst/staged"))
         self.assertEqual(paths.state_dir(), Path("/tmp/inst/state"))

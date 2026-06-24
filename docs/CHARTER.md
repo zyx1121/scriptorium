@@ -8,14 +8,15 @@ and keeps **one agent identity** across every runtime and device.
 > A *scriptorium* was the room in a medieval monastery where monks copied,
 > archived, and corrected manuscripts — distributed, versioned, by hand. Scribes
 > in different abbeys tended the same body of text. That is exactly this: your
-> agent's manuscripts (persona, memory, skills) tended by four offices.
+> agent's manuscripts (persona, memory, skills, agents) tended by four offices.
 
 ## Engine vs instance (the core split)
 
 - **Engine** — *this repo, public.* The four offices + the machinery to install
   them onto Claude Code / Codex. Ships with **no personal content**.
 - **Instance** — *your private repo.* The manuscripts themselves: `CANON.md`,
-  `memory/`, your own skills. Located via the `SCRIPTORIUM_HOME` env var.
+  `memory/`, your own skills, your delegation `agents/`. Located via the
+  `SCRIPTORIUM_HOME` env var.
 
 One engine, many instances. `scriptorium init` scaffolds a fresh instance, so
 anyone can grow their own agent on the same engine.
@@ -36,14 +37,31 @@ rollback and audit. Pure infrastructure — produces nothing, digests nothing.
 
 ### Scribe — *self-authoring*
 The copyist. Turns raw signal (sessions, tool usage) into **new** manuscripts —
-proposing or writing new memory and skills. From nothing to something.
+proposing or writing new memory, skills, and agents. From nothing to something.
 - observation (events / observe) · extraction.
 
 ### Corrector — *self-review*
-The proof-reader. Tends **existing** manuscripts — calibrating skills,
+The proof-reader. Tends **existing** manuscripts — calibrating skills and agents,
 de-duplicating and merging memory, promoting the most essential facts toward the
 Canon. Never silently overwrites hand-written assets (**propose-only**).
-- skill calibration · consolidation · promotion.
+- skill / agent calibration · consolidation · promotion.
+
+## The four manuscript types
+
+Claude Code / Codex ship these primitives but leave them **passive** — slots that
+never grow, sync, or review themselves. Scriptorium tends four kinds of manuscript:
+
+1. **Canon** — identity. `CANON.md`. Hand-written; the engine binds it, never edits.
+2. **Memory** — durable facts. `memory/*.md`, indexed by `MEMORY.md`.
+3. **Skills** — behaviours. `skills/<name>/SKILL.md`.
+4. **Agents** — the delegation fleet. `agents/*.md` (one subagent per role) plus
+   `agents/README.md` (the shared report contract) — the workers a lead delegates
+   isolatable coding / survey / review to, so it stays an orchestrator instead of
+   doing everything in one context.
+
+Adding a type means teaching every office to tend it: **Armarium** binds & versions
+it, **Scribe** authors new ones, **Corrector** calibrates existing ones. Memory,
+skills, and agents are all engine-tended; only the Canon is owner-only.
 
 ## Boundaries that keep it clean
 
