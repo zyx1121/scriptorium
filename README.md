@@ -1,10 +1,11 @@
 # scriptorium
 
-A self-evolving agent layer over **Claude Code** and **Codex**.
+A self-evolving agent layer for **Claude Code**, with a narrow **Codex** bridge.
 
-CC/Codex give you skills, hooks, and memory — but passive ones. Scriptorium adds
-the engine that makes them **grow, sync across devices, and review themselves**,
-while keeping **one agent identity** across every runtime.
+Claude Code gives you skills, hooks, and memory — but passive ones. Scriptorium
+adds the engine that makes them **grow, sync across devices, and review
+themselves**, while keeping **one agent identity** available to Codex through
+`AGENTS.md` plus a portable recall/remember MCP server.
 
 > A scriptorium was the medieval room where monks copied, archived, and corrected
 > manuscripts. Here, four offices tend your agent's manuscripts. See
@@ -29,10 +30,29 @@ claude plugin install scriptorium@scriptorium
 # point at an instance, or scaffold and bind a fresh one
 /scriptorium-init ~/my-agent
 
-# Codex (doesn't load CC plugins): identity + the recall/remember MCP
+# Codex bridge (doesn't load this Claude Code plugin): identity + recall/remember MCP
 # `/scriptorium-init` also links CANON.md into Codex and registers the MCP
 # server when the `codex` CLI is available.
 ```
+
+## Codex support boundary
+
+Codex support is intentionally a **bridge**, not a full second runtime for the
+engine. Current supported surface:
+
+- `CANON.md` is linked into Codex as `AGENTS.md`, so Codex can load the same
+  identity.
+- `mcp/scriptorium_mcp.py` exposes portable `recall` / `remember` over the same
+  instance memory.
+
+Current unsupported surface in Codex:
+
+- this repo is a Claude Code plugin (`.claude-plugin`), not a Codex plugin
+  (`.codex-plugin`);
+- Claude Code skills, `/scriptorium-init`, `CLAUDE_PLUGIN_ROOT`, and
+  `CLAUDE_SKILL_DIR` are not portable as-is;
+- Claude Code hook payloads drive Scribe/Corrector observation and review; Codex
+  does not run this engine lifecycle from the current package.
 
 ## Layout
 
@@ -43,7 +63,7 @@ claude plugin install scriptorium@scriptorium
 | `corrector/` | Corrector | calibrate · consolidate existing (propose-only) | `skill_review.py` · `skills/dreaming` |
 | `mcp/` | — | portable memory MCP | `scriptorium_mcp.py` (recall / remember) |
 | `skills/` | — | engine skills | `method` · `dreaming` |
-| `hooks/` | — | wires offices to CC/Codex lifecycle | `hooks.json` |
+| `hooks/` | — | wires offices to Claude Code lifecycle | `hooks.json` |
 | `bin/` | — | instance setup + Codex binding helpers | |
 
 ---
