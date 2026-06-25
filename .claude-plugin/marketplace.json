@@ -3,13 +3,13 @@
   "owner": { "name": "zyx1121", "url": "https://github.com/zyx1121" },
   "metadata": {
     "description": "The scriptorium engine — a self-evolving agent layer over Claude Code / Codex.",
-    "version": "0.2.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "scriptorium",
       "source": ".",
-      "description": "Armarium (persistence) / Scribe (authoring) / Corrector (review) over a Canon-defined instance. Install, then point SCRIPTORIUM_HOME at your instance — or `scriptorium init` a fresh one.",
+      "description": "Armarium (persistence) / Scribe (authoring) / Corrector (review) over a Canon-defined instance. Install, then run `/scriptorium-init` to scaffold and bind an instance.",
       "category": "agent"
     }
   ]

@@ -26,15 +26,12 @@ root-relative `source`). Check with `claude --version`; `claude update` if neede
 claude plugin marketplace add zyx1121/scriptorium
 claude plugin install scriptorium@scriptorium
 
-# point at an instance, or scaffold a fresh one
-export SCRIPTORIUM_HOME=~/my-agent
-scriptorium init "$SCRIPTORIUM_HOME"
+# point at an instance, or scaffold and bind a fresh one
+/scriptorium-init ~/my-agent
 
 # Codex (doesn't load CC plugins): identity + the recall/remember MCP
-bin/codex-bind.sh
-python3 -m venv .venv && .venv/bin/pip install -r mcp/requirements.txt
-codex mcp add scriptorium --env SCRIPTORIUM_HOME="$SCRIPTORIUM_HOME" -- \
-  "$PWD/.venv/bin/python" "$PWD/mcp/scriptorium_mcp.py"
+# `/scriptorium-init` also links CANON.md into Codex and registers the MCP
+# server when the `codex` CLI is available.
 ```
 
 ## Layout
@@ -47,7 +44,7 @@ codex mcp add scriptorium --env SCRIPTORIUM_HOME="$SCRIPTORIUM_HOME" -- \
 | `mcp/` | — | portable memory MCP | `scriptorium_mcp.py` (recall / remember) |
 | `skills/` | — | engine skills | `method` · `dreaming` |
 | `hooks/` | — | wires offices to CC/Codex lifecycle | `hooks.json` |
-| `commands/`, `bin/` | — | `/scriptorium-init` · install + Codex binding | |
+| `bin/` | — | instance setup + Codex binding helpers | |
 
 ---
 
@@ -56,7 +53,7 @@ codex mcp add scriptorium --env SCRIPTORIUM_HOME="$SCRIPTORIUM_HOME" -- \
 - **S0 ✅** engine scaffolded — four offices, 41 tests green.
 - **Engine feature-complete ✅** — Armarium (memory-sync + index), Scribe (observe
   + events + method-route), Corrector (skill-review + dreaming), MCP (recall /
-  remember). **73 tests green.** Migrated out of `kilo` and de-personalized:
+  remember). **110 tests green.** Migrated out of `kilo` and de-personalized:
   daemon-only MCP tools (Telegram / mail / scheduler) deliberately left in the
   instance, not the public engine.
 - **S1 ✅** verified installable on a clean VM — plugin install + `init` + a real

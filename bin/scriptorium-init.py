@@ -39,22 +39,32 @@ def instance_home() -> Path:
     return Path(env).expanduser() if env else Path.home() / ".scriptorium"
 
 
-def main() -> int:
-    home = instance_home()
+def ensure_instance(home: Path) -> None:
     for d in ("memory", "skills", "agents", "data/events", "state", "staged"):
         (home / d).mkdir(parents=True, exist_ok=True)
 
-    created = []
     canon = home / "CANON.md"
     if not canon.exists():
         canon.write_text(CANON_TEMPLATE, encoding="utf-8")
-        created.append("CANON.md")
     idx = home / "memory" / "MEMORY.md"
     if not idx.exists():
         # Generate the canonical (empty) index — same format memory-sync rebuilds,
         # so the first sync won't silently rewrite a hand-shaped template.
         rows, _ = gmi.build_rows(home / "memory")
         idx.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    home = instance_home()
+    before = {
+        "CANON.md": (home / "CANON.md").exists(),
+        "memory/MEMORY.md": (home / "memory" / "MEMORY.md").exists(),
+    }
+    ensure_instance(home)
+    created = []
+    if not before["CANON.md"]:
+        created.append("CANON.md")
+    if not before["memory/MEMORY.md"]:
         created.append("memory/MEMORY.md")
 
     print(f"scriptorium instance ready at {home}")
