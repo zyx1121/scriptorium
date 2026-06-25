@@ -25,10 +25,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # engine root onto path
 from armarium import paths  # noqa: E402
 
-MODEL = "claude-opus-4-8"   # focused single-agent review, small input — opus earns its keep
+DEFAULT_MODEL = "claude-opus-4-8"   # focused single-agent review, small input — opus earns its keep
+MODEL_ENV = "SCRIPTORIUM_REVIEW_MODEL"
 THRESHOLD = 10              # worker spawns since last review before it's re-reviewed
 GUARD_ENV = "SCRIPTORIUM_REVIEW"
 CONTRACT_DOC = "README.md"  # the fleet's shared contract, not an agent definition
+
+
+def default_model() -> str:
+    return os.environ.get(MODEL_ENV, DEFAULT_MODEL)
 
 
 def _counter_path() -> Path:
@@ -192,7 +197,7 @@ def main() -> int:
     ap.add_argument("--agent", help="review this agent now (manual / detached-spawn target)")
     ap.add_argument("--all", action="store_true", help="review every agent currently over threshold")
     ap.add_argument("--threshold", type=int, default=THRESHOLD)
-    ap.add_argument("--model", default=MODEL)
+    ap.add_argument("--model", default=default_model())
     ap.add_argument("--dry", action="store_true", help="review + print, don't stage/reset")
     args = ap.parse_args()
 

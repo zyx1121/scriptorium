@@ -16,6 +16,28 @@ ob = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ob)
 
 
+class OptOutTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = TemporaryDirectory()
+        self._orig_config = ob.CONFIG_FILE
+        ob.CONFIG_FILE = Path(self._tmp.name) / "scriptorium.local.md"
+
+    def tearDown(self):
+        ob.CONFIG_FILE = self._orig_config
+        self._tmp.cleanup()
+
+    def test_missing_config_observes(self):
+        self.assertFalse(ob._is_off())
+
+    def test_frontmatter_observe_off(self):
+        ob.CONFIG_FILE.write_text("---\nobserve: off\n---\n", encoding="utf-8")
+        self.assertTrue(ob._is_off())
+
+    def test_body_observe_off_does_not_count(self):
+        ob.CONFIG_FILE.write_text("not frontmatter\nobserve: off\n", encoding="utf-8")
+        self.assertFalse(ob._is_off())
+
+
 class NoiseBashTest(unittest.TestCase):
     def test_pure_noise_filtered(self):
         self.assertTrue(ob._is_noise_bash("ls -la && cd /tmp"))

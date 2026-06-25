@@ -8,7 +8,8 @@
 #
 # Operates on the INSTANCE repo (SCRIPTORIUM_HOME). If the instance isn't a git
 # repo (e.g. a fresh `scriptorium init`), it no-ops cleanly. push 前先 pull
-# --rebase,避免跨機 non-fast-forward 永久 diverge。
+# --rebase,避免跨機 non-fast-forward 永久 diverge。 Uses the configured upstream
+# when present, otherwise falls back to the current branch on the first remote.
 
 set -e
 
@@ -28,8 +29,20 @@ git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 # working tree 可能有 memory/ 外的 dirty;rebase 失敗一定 abort。
 sync_bg() {
   (
-    if err=$(git pull --rebase --autostash -q origin main 2>&1); then
-      if err=$(git push -q origin main 2>&1); then
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+    if [ -n "$upstream" ]; then
+      pull_cmd=(git pull --rebase --autostash -q)
+      push_cmd=(git push -q)
+    else
+      remote=$(git remote | head -1)
+      branch=$(git branch --show-current 2>/dev/null || true)
+      [ -n "$remote" ] && [ -n "$branch" ] || exit 0
+      pull_cmd=(git pull --rebase --autostash -q "$remote" "$branch")
+      push_cmd=(git push -q "$remote" "$branch")
+    fi
+
+    if err=$("${pull_cmd[@]}" 2>&1); then
+      if err=$("${push_cmd[@]}" 2>&1); then
         rm -f .sync-failed
         exit 0
       fi

@@ -31,6 +31,28 @@ claude plugin install scriptorium@scriptorium
 
 ```
 
+## Privacy / observability
+
+Scriptorium is local-first and writes observation data into your private instance
+under `SCRIPTORIUM_HOME/data/`. The event hook records Claude Code lifecycle and
+Skill/Task metadata; the script observer records non-noise script writes/runs so
+repeated patterns can become candidate skills. For script writes it stores the
+path, a short content hash, and up to the first 4096 characters as
+`content_preview`.
+
+To disable both event and script observation on a machine, create
+`~/.claude/scriptorium.local.md` with frontmatter:
+
+```markdown
+---
+observe: off
+---
+```
+
+Memory sync (`armarium/memory-sync.sh`) only commits `memory/` changes in your
+instance repo. It uses the configured git upstream when available, otherwise it
+falls back to the current branch on the first remote; non-git instances no-op.
+
 ## Layout
 
 | Dir | Office | Role | Pieces |
@@ -48,7 +70,7 @@ claude plugin install scriptorium@scriptorium
 
 - **S0 ✅** engine scaffolded — four offices, 41 tests green.
 - **Engine feature-complete ✅** — Armarium (memory-sync + index), Scribe (observe
-  + events + method-route), Corrector (skill-review + dreaming). **109 tests
+  + events + method-route), Corrector (skill-review + dreaming). **117 tests
   green.** Migrated out of `kilo` and de-personalized:
   daemon-only MCP tools (Telegram / mail / scheduler) deliberately left in the
   instance, not the public engine.

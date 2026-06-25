@@ -7,6 +7,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import subprocess
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -134,6 +135,26 @@ class MemorySyncSmokeTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         after = subprocess.run(["git", "-C", self.home, "rev-parse", "HEAD"], capture_output=True, text=True).stdout
         self.assertEqual(before, after)                                          # no new commit
+
+    def test_pushes_current_branch_not_hardcoded_main(self):
+        with TemporaryDirectory() as remote_dir:
+            subprocess.run(["git", "init", "-q", "--bare", remote_dir], check=True, capture_output=True)
+            self._git("remote", "add", "origin", remote_dir)
+            self._git("branch", "-m", "trunk")
+            self._git("push", "-q", "-u", "origin", "trunk")
+
+            (Path(self.home) / "memory" / "trunk.md").write_text('---\ntitle: Trunk\ndescription: branch ok\n---\nbody')
+            r = self._run_sync()
+            self.assertEqual(r.returncode, 0)
+
+            for _ in range(50):
+                log = subprocess.run(["git", "--git-dir", remote_dir, "log", "--oneline", "trunk"],
+                                     capture_output=True, text=True)
+                if "auto-sync" in log.stdout:
+                    break
+                time.sleep(0.1)
+            self.assertIn("auto-sync", log.stdout)
+
 
     def test_review_guard_skips(self):
         (Path(self.home) / "memory" / "bar.md").write_text("---\ntitle: Bar\n---\nx")

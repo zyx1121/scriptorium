@@ -22,6 +22,8 @@ from armarium import paths  # noqa: E402
 
 MAX_CONTENT = 4096
 MAX_STDERR = 512
+CONFIG_FILE = Path.home() / ".claude" / "scriptorium.local.md"
+OBSERVE_RE = re.compile(r"^\s*observe\s*:\s*(\w+)\s*$", re.MULTILINE)
 
 NOISE_BASH_FIRST_WORD = {
     "ls", "cd", "cat", "head", "tail", "grep", "find", "git",
@@ -50,6 +52,20 @@ try:
 except OSError:
     _KNOWN_TOOLS = set()
 
+
+def _is_off() -> bool:
+    """Return True when local frontmatter opts out of all scriptorium observation."""
+    try:
+        text = CONFIG_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    if not text.startswith("---"):
+        return False
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return False
+    m = OBSERVE_RE.search(parts[1])
+    return bool(m) and m.group(1).strip().lower() in {"off", "false", "no", "0"}
 
 def _is_noise_bash(cmd: str) -> bool:
     cmd = cmd.strip()
@@ -138,6 +154,8 @@ def _build_record(event: dict) -> dict | None:
 
 
 def main() -> int:
+    if _is_off():
+        return 0
     try:
         event = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

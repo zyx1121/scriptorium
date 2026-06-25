@@ -20,6 +20,19 @@ _spec.loader.exec_module(ar)
 KNOWN = {"developer", "surveyor", "reviewer", "planner"}
 
 
+class ModelConfigTest(unittest.TestCase):
+    def tearDown(self):
+        os.environ.pop(ar.MODEL_ENV, None)
+
+    def test_default_model_from_env(self):
+        os.environ[ar.MODEL_ENV] = "claude-sonnet-test"
+        self.assertEqual(ar.default_model(), "claude-sonnet-test")
+
+    def test_default_model_falls_back(self):
+        os.environ.pop(ar.MODEL_ENV, None)
+        self.assertEqual(ar.default_model(), ar.DEFAULT_MODEL)
+
+
 class NormalizeTest(unittest.TestCase):
     def test_collapses_alias(self):
         self.assertEqual(ar.normalize_agent_name("plugin:developer", KNOWN), "developer")

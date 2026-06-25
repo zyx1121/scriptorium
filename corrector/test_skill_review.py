@@ -20,6 +20,19 @@ _spec.loader.exec_module(sr)
 KNOWN = {"method", "pve", "keynote"}
 
 
+class ModelConfigTest(unittest.TestCase):
+    def tearDown(self):
+        os.environ.pop(sr.MODEL_ENV, None)
+
+    def test_default_model_from_env(self):
+        os.environ[sr.MODEL_ENV] = "claude-sonnet-test"
+        self.assertEqual(sr.default_model(), "claude-sonnet-test")
+
+    def test_default_model_falls_back(self):
+        os.environ.pop(sr.MODEL_ENV, None)
+        self.assertEqual(sr.default_model(), sr.DEFAULT_MODEL)
+
+
 class NormalizeTest(unittest.TestCase):
     def test_collapses_alias(self):
         self.assertEqual(sr.normalize_skill_name("utils:method", KNOWN), "method")
