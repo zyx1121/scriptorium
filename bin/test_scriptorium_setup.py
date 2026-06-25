@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -57,6 +58,28 @@ class SetupTest(unittest.TestCase):
         with mock.patch.object(setup_mod.shutil, "which", return_value="/usr/bin/codex"):
             log = setup_mod.setup(self.home, self.claude, self.codex, skip_codex_mcp=True)
         self.assertIn("codex: skipped MCP registration", log)
+
+    def test_register_codex_mcp_creates_codex_home(self):
+        codex_home = self.root / "codex-home"
+        calls = []
+        orig = os.environ.get("CODEX_HOME")
+        os.environ["CODEX_HOME"] = str(codex_home)
+        try:
+            with mock.patch.object(setup_mod.shutil, "which", return_value="/usr/bin/codex"), \
+                    mock.patch.object(setup_mod, "ensure_mcp_venv",
+                                      return_value=(self.root / "venv" / "bin" / "python", [])), \
+                    mock.patch.object(setup_mod.subprocess, "run",
+                                      side_effect=lambda *a, **k: calls.append(a[0]) or
+                                      mock.Mock(returncode=0, stdout="", stderr="")):
+                log = setup_mod.register_codex_mcp(self.home, setup_mod.ENGINE_ROOT, dry=False, skip=False)
+        finally:
+            if orig is None:
+                os.environ.pop("CODEX_HOME", None)
+            else:
+                os.environ["CODEX_HOME"] = orig
+        self.assertTrue(codex_home.is_dir())
+        self.assertIn("codex: MCP scriptorium registered", log)
+        self.assertEqual(calls[0][:3], ["/usr/bin/codex", "mcp", "add"])
 
 
 if __name__ == "__main__":

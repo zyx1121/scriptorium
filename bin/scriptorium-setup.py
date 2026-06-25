@@ -106,6 +106,7 @@ def register_codex_mcp(home: Path, engine: Path, dry: bool, skip: bool) -> list[
     codex = shutil.which("codex")
     if codex is None:
         return ["codex: skip MCP registration; codex CLI not found"]
+    codex_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex").expanduser()
 
     py, log = ensure_mcp_venv(home, dry)
     cmd = [
@@ -120,8 +121,9 @@ def register_codex_mcp(home: Path, engine: Path, dry: bool, skip: bool) -> list[
         str(engine / "mcp" / "scriptorium_mcp.py"),
     ]
     if dry:
-        return [*log, "codex: would run " + " ".join(cmd)]
+        return [*log, f"codex: would ensure {codex_home}", "codex: would run " + " ".join(cmd)]
 
+    codex_home.mkdir(parents=True, exist_ok=True)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode == 0:
         log.append("codex: MCP scriptorium registered")
