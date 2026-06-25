@@ -7,7 +7,7 @@ it symlinks the instance's skills/ and agents/ into ~/.claude so the runtime see
 them. Idempotent — safe to re-run; only ever creates or refreshes symlinks the
 engine owns, and refuses to clobber a real (hand-placed) file.
 
-This is the Armarium's "binding ... into CC/Codex" duty made explicit (CHARTER).
+This is the Armarium's "binding ... into Claude Code" duty made explicit (CHARTER).
 It supersedes the per-instance setup.sh that used to carry this logic, keeping the
 boundary clean: the engine carries the binding logic, the instance carries only
 manuscripts.

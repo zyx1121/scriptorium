@@ -1,5 +1,5 @@
 {
-  "description": "scriptorium engine — Scribe observation + method router + Corrector trigger + Armarium memory-sync, wired to the Claude Code / Codex lifecycle.",
+  "description": "scriptorium engine — Scribe observation + method router + Corrector trigger + Armarium memory-sync, wired to the Claude Code lifecycle.",
   "hooks": {
     "SessionStart": [
       {

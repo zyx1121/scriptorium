@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scribe — local-only Claude Code / Codex session observability (the signal log).
+"""scribe — local-only Claude Code session observability (the signal log).
 
 Captures session boundaries, Skill / Task invocations, and `[METHOD: x]` router
 declarations into the instance's daily jsonl (SCRIPTORIUM_HOME/data/events). Only

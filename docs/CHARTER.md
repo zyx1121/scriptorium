@@ -3,8 +3,6 @@
 Claude Code gives you primitives — skills, hooks, memory — but they are
 **passive**: they don't grow, don't sync across machines, don't review themselves.
 Scriptorium is the engine that adds the missing **self-evolution** layer on top.
-Codex support is a narrower bridge: the same Canon as `AGENTS.md` plus the
-portable memory MCP.
 
 > A *scriptorium* was the room in a medieval monastery where monks copied,
 > archived, and corrected manuscripts — distributed, versioned, by hand. Scribes
@@ -14,8 +12,7 @@ portable memory MCP.
 ## Engine vs instance (the core split)
 
 - **Engine** — *this repo, public.* The four offices + the machinery to install
-  them onto Claude Code, plus a Codex identity/memory bridge. Ships with **no
-  personal content**.
+  them onto Claude Code. Ships with **no personal content**.
 - **Instance** — *your private repo.* The manuscripts themselves: `CANON.md`,
   `memory/`, your own skills, your delegation `agents/`. Located via the
   `SCRIPTORIUM_HOME` env var.
@@ -27,15 +24,15 @@ anyone can grow their own agent on the same engine.
 
 ### Canon — *identity*
 The unchanging core that defines **who the agent is**: persona, voice, guardrails.
-Claude Code and Codex can load the same Canon, so Claude-on-Mac and Codex-on-VM
-share identity instead of becoming unrelated chatbots.
+Every Claude Code installation loads the same Canon, so Claude-on-Mac and
+Claude-on-VM share identity instead of becoming unrelated chatbots.
 - Lives in the instance as `CANON.md`. The engine only **binds** it to each
   runtime — it **never rewrites it** (no self-modifying guardrails).
 
 ### Armarium — *persistence & versioning*
 The library. Keeps every manuscript under **git**, synced across machines, with
 rollback and audit. Pure infrastructure — produces nothing, digests nothing.
-- sync · index generation · binding the Canon into Claude Code / Codex.
+- sync · index generation · binding the Canon into Claude Code.
 
 ### Scribe — *self-authoring*
 The copyist. Turns raw signal (sessions, tool usage) into **new** manuscripts —

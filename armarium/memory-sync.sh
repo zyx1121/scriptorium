@@ -3,7 +3,7 @@
 # memory/ 一旦 dirty(新增 / 修改 / 移除)就 commit + 背景 pull --rebase + push。
 #
 # 「memory 變動必 git」不靠 agent 自覺 —— 在 git 層掃 dirty,涵蓋所有寫入來源
-# (Write/Edit、MCP remember、dreaming、手編)。攔特定工具會漏 MCP remember;
+# (Write/Edit、dreaming、手編、instance-specific tools)。攔特定工具會漏;
 # 掃 dirty 不會。全程容錯,任何步驟失敗都 exit 0,絕不卡 session。
 #
 # Operates on the INSTANCE repo (SCRIPTORIUM_HOME). If the instance isn't a git
