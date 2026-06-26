@@ -1,9 +1,9 @@
 ---
 name: authoring
-description: "Author NEW skills & agents from session signal (Scribe office) — scan a recent transcript, extract reusable PROCEDUREs into skill drafts and recurring DELEGATION needs into agent drafts, and propose them to staged/ for you to adopt. Propose-only, never auto-writes a behaviour definition. Run when you want the agent to grow its own capabilities from what it has been doing repeatedly. Triggers on '/authoring', 'author a new skill', 'author an agent', '從 session 長出 skill', '把這套流程變成 skill', 'scribe authoring', 'grow a new worker', 'kilo 自己長 skill/agent'."
+description: "Author NEW skills, agents & tools from signal (Scribe office) — scan a transcript for reusable PROCEDUREs (skill drafts) and recurring DELEGATION needs (agent drafts), and scan the observation log for recurring ad-hoc scripts (tool candidates), proposing all to staged/ for you to adopt. Propose-only, never auto-writes. Run when you want the agent to grow its own capabilities from what it keeps doing. Triggers on '/authoring', 'author a new skill', 'author an agent', 'author a tool', '從 session 長出 skill', '把這套流程變成 skill', '把這個重複的 script 變成 tool', 'scribe authoring', 'grow a new worker / tool', 'kilo 自己長 skill/agent/tool'."
 ---
 
-# Authoring — grow new skills & agents (Scribe office)
+# Authoring — grow new skills, agents & tools (Scribe office)
 
 從 session signal 長出**新**手稿:反覆出現、長期需要的 procedure → skill draft;反覆被下放的工作 → agent draft。**propose-only** —— 候選丟 `staged/author.jsonl` 等你採納,**絕不自動寫進 `skills/` 或 `agents/`**(自動生成的行為定義必須你把關)。
 
@@ -35,6 +35,20 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scribe/author.py" [--session <id>] [--dry]
   - agent → `$SCRIPTORIUM_HOME/agents/<slug>.md`(對齊 `agents/README.md` 的回報 contract)
 - 不值得的 → 刪掉那行。**採納是你的判斷,不是自動的** —— 呼應「如果會長期需要的話」。
 - 採納後跑 `python3 "${CLAUDE_PLUGIN_ROOT}/armarium/bind.py"` 把新 skill/agent symlink 進 runtime。
+
+## Tool authoring(external manuscript)
+
+工具的創造半邊。tool 是外部 toolbox repo 的 CLI(經 `SCRIPTORIUM_TOOLS_DIR` 引用),不是 instance 手稿 —— 信號也不同:不是 transcript,是**反覆寫的一次性 script**(observation log 的 `script-run`/`write-script`)。
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scribe/tool_author.py" [--dry]
+```
+
+- 讀 observation log → claude 把語意重複(≥2)的 ad-hoc script cluster 成「該做成 tool」的候選 → `staged/tool-author.jsonl`(`slug` / `what` / `rationale` / `samples`)。dedup vs 已提候選。
+- **採納(你把關)** → 派 apply agent(instance 的 `utils-promoter`,或等價)把候選變成 `<tools-repo>/scripts/<slug>` + 開 PR。**engine 不碰外部 repo / 不開 PR**(repo-specific 留 instance)。
+- 對稱:`tool_author`(創) ↔ `corrector/tool_review`(校,讀 utils-usage 失敗率)。兩者都不自動改 tool repo。
+
+> 完整 tool 自循環:`observe`(記 ad-hoc + usage)→ `tool_author`(創候選)/ `tool_review`(校既有)→ 你採納 → apply agent 寫 script + PR → shim 改即 live。取代了手動 `/review` cluster;apply agent 是保留的執行層,不是被取代對象。
 
 ## 邊界
 
