@@ -74,9 +74,11 @@ def stage_proposals(staged_dir: Path, filename: str, key: str, name: str,
                     suggestions: list[dict]) -> Path:
     """Append propose-only fixes to staged/<filename>, tagging each with key=name
     (e.g. skill=method / agent=developer / tool=ssl-check). Never edits the asset."""
+    out = staged_dir / filename
+    if not suggestions:
+        return out                          # nothing to stage — don't create an empty file
     staged_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    out = staged_dir / filename
     with out.open("a") as f:
         for s in suggestions:
             f.write(json.dumps({**s, key: name, "ts": ts}, ensure_ascii=False) + "\n")

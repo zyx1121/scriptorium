@@ -76,6 +76,12 @@ class StageProposalsTest(unittest.TestCase):
             out = rv.stage_proposals(sd, "f.jsonl", "tool", "b", [{"aspect": "x", "fix": "2"}])
             self.assertEqual(len(out.read_text().splitlines()), 2)
 
+    def test_empty_suggestions_creates_no_file(self):
+        with TemporaryDirectory() as d:
+            sd = Path(d) / "staged"
+            out = rv.stage_proposals(sd, "f.jsonl", "tool", "x", [])
+            self.assertFalse(out.exists())     # don't litter staged/ with empty files
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

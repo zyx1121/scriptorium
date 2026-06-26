@@ -139,5 +139,21 @@ class StageProposalsTest(unittest.TestCase):
         self.assertIn("ts", rec)
 
 
+class GuardTest(unittest.TestCase):
+    def setUp(self):
+        self._orig = os.environ.get(tr._review.GUARD_ENV)
+        os.environ[tr._review.GUARD_ENV] = "1"
+
+    def tearDown(self):
+        if self._orig is None:
+            os.environ.pop(tr._review.GUARD_ENV, None)
+        else:
+            os.environ[tr._review.GUARD_ENV] = self._orig
+
+    def test_refuses_to_recurse(self):
+        # inside an office's own claude -p; main() must early-exit before doing work
+        self.assertEqual(tr.main(), 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

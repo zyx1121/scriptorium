@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -132,6 +133,9 @@ def review_one(name: str, model: str, stat: dict | None) -> list[dict]:
 
 
 def main() -> int:
+    if os.environ.get(_review.GUARD_ENV):    # symmetry with skill/agent review: a scheduled
+        print(f"{_review.GUARD_ENV} set — refusing to recurse", file=sys.stderr)  # trigger must not recurse
+        return 0
     ap = argparse.ArgumentParser()
     ap.add_argument("--tool", help="review this tool now (manual target)")
     ap.add_argument("--all", action="store_true", help="review every tool over the failure bar")
