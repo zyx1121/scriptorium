@@ -63,26 +63,3 @@ falls back to the current branch on the first remote; non-git instances no-op.
 | `skills/` | — | engine skills | `method` · `dreaming` |
 | `hooks/` | — | wires offices to Claude Code lifecycle | `hooks.json` |
 | `bin/` | — | instance setup helpers | |
-
----
-
-## Status
-
-- **S0 ✅** engine scaffolded — four offices, 41 tests green.
-- **Engine feature-complete ✅** — Armarium (memory-sync + index), Scribe (observe
-  + events + method-route), Corrector (skill-review + dreaming). **117 tests
-  green.** Migrated out of `kilo` and de-personalized:
-  daemon-only MCP tools (Telegram / mail / scheduler) deliberately left in the
-  instance, not the public engine.
-- **S1 ✅** verified installable on a clean VM — plugin install + `init` + a real
-  CC session auto-firing hooks into a fresh instance.
-- **S2 ✅** migration verified on a live instance (PVE `kilo`: 21 skills, 63
-  memories) — `CANON.md → KILO.md` symlink, engine reads the real persona, hooks
-  write to the real `data/`, all additive: old binding untouched, zero git
-  pollution.
-- **S3 — todo:** migrate the Mac core. Pending cleanups surfaced en route:
-  drop the duplicate `method` skill from instances (engine ships it); the dead
-  `growth/review.py`; converge `nudge.py`.
-
-Migrating the working parts out of `zyx1121/kilo`, which becomes the first
-private *instance*.
