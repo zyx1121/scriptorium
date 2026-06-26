@@ -7,16 +7,22 @@ it symlinks the instance's skills/ and agents/ into ~/.claude so the runtime see
 them. Idempotent — safe to re-run; only ever creates or refreshes symlinks the
 engine owns, and refuses to clobber a real (hand-placed) file.
 
+`--prune` is the reverse duty: when a manuscript is removed from the instance, the
+symlink it left in ~/.claude goes dangling. Prune removes those dead links — but
+only ones pointing back into the instance home (engine-owned); it never touches a
+real file or a symlink the owner aimed elsewhere.
+
 This is the Armarium's "binding ... into Claude Code" duty made explicit (CHARTER).
 It supersedes the per-instance setup.sh that used to carry this logic, keeping the
 boundary clean: the engine carries the binding logic, the instance carries only
 manuscripts.
 
-Run:  python3 armarium/bind.py [--home DIR] [--claude DIR] [--dry]
+Run:  python3 armarium/bind.py [--home DIR] [--claude DIR] [--prune] [--dry]
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -71,14 +77,60 @@ def bind_claude(home: Path | None = None, claude: Path | None = None, dry: bool 
     return log
 
 
+def _owned_dangling(dst: Path, home: Path) -> bool:
+    """True if dst is an engine-owned symlink (points into the instance home) whose
+    source is gone. A real file, or a symlink aimed outside home, is never ours."""
+    if not dst.is_symlink():
+        return False                          # real file/dir — not ours, never touch
+    try:
+        target = Path(os.readlink(dst))
+    except OSError:
+        return False
+    if not target.is_absolute():
+        target = dst.parent / target
+    try:
+        target, home = target.resolve(), home.resolve()
+    except OSError:
+        return False
+    points_into_home = target == home or home in target.parents
+    return points_into_home and not dst.exists()  # exists() follows link -> False if dangling
+
+
+def prune_claude(home: Path | None = None, claude: Path | None = None, dry: bool = False) -> list[str]:
+    """Remove engine-owned symlinks under ~/.claude/{skills,agents} whose instance
+    source no longer exists. The inverse of bind_claude — see module docstring for
+    the safety boundary (owned + dangling only)."""
+    home = home or paths.instance_home()
+    claude = claude or (Path.home() / ".claude")
+    log: list[str] = []
+
+    for sub, pattern in (("skills", "*"), ("agents", "*.md")):
+        d = claude / sub
+        if not d.is_dir():
+            continue
+        for entry in sorted(d.glob(pattern)):
+            if not _owned_dangling(entry, home):
+                continue
+            if dry:
+                log.append(f"would prune {sub}/{entry.name} (source gone)")
+            else:
+                entry.unlink()
+                log.append(f"pruned {sub}/{entry.name} (source gone)")
+
+    return log
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="link instance skills/agents into a runtime")
     ap.add_argument("--home", type=Path, default=None, help="instance home (default: SCRIPTORIUM_HOME)")
     ap.add_argument("--claude", type=Path, default=None, help="runtime config dir (default: ~/.claude)")
+    ap.add_argument("--prune", action="store_true", help="also remove dead links whose instance source is gone")
     ap.add_argument("--dry", action="store_true", help="show what would change, touch nothing")
     args = ap.parse_args()
 
     log = bind_claude(args.home, args.claude, args.dry)
+    if args.prune:
+        log += prune_claude(args.home, args.claude, args.dry)
     for line in log:
         print(line)
     if not log:
