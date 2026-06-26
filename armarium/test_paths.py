@@ -75,5 +75,25 @@ class SeparationTest(_EnvGuard):
         self.assertTrue(str(paths.method_assets_dir()).startswith("/opt/plug"))
 
 
+class ToolsDirTest(unittest.TestCase):
+    """SCRIPTORIUM_TOOLS_DIR points at an external tool repo, or None when unwired."""
+    def setUp(self):
+        self._orig = os.environ.get("SCRIPTORIUM_TOOLS_DIR")
+        os.environ.pop("SCRIPTORIUM_TOOLS_DIR", None)
+
+    def tearDown(self):
+        if self._orig is None:
+            os.environ.pop("SCRIPTORIUM_TOOLS_DIR", None)
+        else:
+            os.environ["SCRIPTORIUM_TOOLS_DIR"] = self._orig
+
+    def test_none_when_unset(self):
+        self.assertIsNone(paths.tools_dir())
+
+    def test_env_expanded(self):
+        os.environ["SCRIPTORIUM_TOOLS_DIR"] = "~/toolbox/scripts"
+        self.assertEqual(paths.tools_dir(), Path.home() / "toolbox" / "scripts")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

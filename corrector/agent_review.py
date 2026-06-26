@@ -19,21 +19,21 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # engine root onto path
 from armarium import paths  # noqa: E402
+from corrector import _review  # noqa: E402
 
 DEFAULT_MODEL = "claude-opus-4-8"   # focused single-agent review, small input — opus earns its keep
-MODEL_ENV = "SCRIPTORIUM_REVIEW_MODEL"
 THRESHOLD = 10              # worker spawns since last review before it's re-reviewed
-GUARD_ENV = "SCRIPTORIUM_REVIEW"
+GUARD_ENV = _review.GUARD_ENV
+MODEL_ENV = _review.MODEL_ENV
 CONTRACT_DOC = "README.md"  # the fleet's shared contract, not an agent definition
 
 
 def default_model() -> str:
-    return os.environ.get(MODEL_ENV, DEFAULT_MODEL)
+    return _review.default_model(DEFAULT_MODEL)
 
 
 def _counter_path() -> Path:
@@ -134,51 +134,15 @@ def build_prompt(name: str, agent_md: str, siblings: list[str]) -> str:
             f"=== END ===\n\nJSON array:")
 
 
-def call_claude(prompt: str, model: str) -> str:
-    """Spawn headless claude -p with the recursion guard set. Returns raw stdout."""
-    env = dict(os.environ, **{GUARD_ENV: "1"})
-    proc = subprocess.run(
-        ["claude", "-p", prompt, "--model", model, "--output-format", "json",
-         "--disallowedTools", "Bash", "Edit", "Write", "Read", "Task"],
-        capture_output=True, text=True, env=env, timeout=300,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"claude -p failed ({proc.returncode}): {proc.stderr[:500]}")
-    return proc.stdout
+call_claude = _review.call_claude
 
 
 def parse_suggestions(raw: str) -> list[dict]:
-    """Tolerant parse: unwrap claude --output-format json envelope, then the array."""
-    text = raw
-    try:
-        env = json.loads(raw)
-        if isinstance(env, dict) and "result" in env:
-            text = env["result"]
-    except json.JSONDecodeError:
-        pass
-    i, j = text.find("["), text.rfind("]")
-    if i == -1 or j == -1 or j < i:
-        return []
-    try:
-        items = json.loads(text[i:j + 1])
-    except json.JSONDecodeError:
-        return []
-    out = []
-    for it in items if isinstance(items, list) else []:
-        if isinstance(it, dict) and it.get("aspect") in ("trigger", "contract", "tools", "clarity") and it.get("fix"):
-            out.append({"aspect": it["aspect"], "issue": str(it.get("issue", "")), "fix": str(it["fix"])})
-    return out
+    return _review.parse_suggestions(raw, ("trigger", "contract", "tools", "clarity"))
 
 
 def stage_proposals(agent: str, suggestions: list[dict]) -> Path:
-    staged = paths.staged_dir()
-    staged.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    out = staged / "agent-review.jsonl"
-    with out.open("a") as f:
-        for s in suggestions:
-            f.write(json.dumps({**s, "agent": agent, "ts": ts}, ensure_ascii=False) + "\n")
-    return out
+    return _review.stage_proposals(paths.staged_dir(), "agent-review.jsonl", "agent", agent, suggestions)
 
 
 def review_one(name: str, model: str) -> list[dict]:

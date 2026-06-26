@@ -40,10 +40,16 @@ proposing new skills and agents. From nothing to something.
 - observation (events / observe) · authoring (`author.py` → `staged/`, propose-only).
 
 ### Corrector — *self-review*
-The proof-reader. Tends **existing** manuscripts — calibrating skills and agents,
-de-duplicating and merging memory, promoting the most essential facts toward the
-Canon. Never silently overwrites hand-written assets (**propose-only**).
-- skill / agent calibration · consolidation · promotion.
+The proof-reader. Tends **existing** manuscripts — calibrating skills, agents, and
+external tools, de-duplicating and merging memory, promoting the most essential
+facts toward the Canon. Never silently overwrites hand-written assets (**propose-only**).
+- skill / agent / tool calibration · consolidation · promotion.
+
+> **External manuscripts.** A tool is a CLI command in a *standalone* repo, not an
+> in-instance asset — so it has no Canon and lives outside `SCRIPTORIUM_HOME`,
+> reached via `SCRIPTORIUM_TOOLS_DIR` (the engine names no specific repo). The
+> Corrector still tends it: `tool_review.py` reads the scribe's usage log in batch
+> and proposes interface fixes, exactly as it calibrates skills and agents.
 
 ## The four manuscript types
 

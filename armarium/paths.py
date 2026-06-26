@@ -43,6 +43,15 @@ def state_dir() -> Path:    return instance_home() / "state"             # offic
 def staged_dir() -> Path:   return instance_home() / "staged"            # corrector proposals
 
 
+# --- external manuscripts (NOT under instance_home) — a standalone repo the engine
+#     tends but does not contain (e.g. a CLI toolbox). Located via its own env var so
+#     the engine names no specific repo, staying personal-content-free. ---
+def tools_dir() -> Path | None:
+    """Scripts dir of the external tool repo. SCRIPTORIUM_TOOLS_DIR; None if unwired."""
+    env = os.environ.get("SCRIPTORIUM_TOOLS_DIR")
+    return Path(env).expanduser() if env else None
+
+
 # --- engine assets (under the plugin) — the offices' own tooling ---
 def engine_skills_dir() -> Path: return engine_root() / "skills"         # method / dreaming / review
 def method_assets_dir() -> Path: return engine_skills_dir() / "method" / "assets"
