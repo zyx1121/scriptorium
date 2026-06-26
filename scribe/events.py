@@ -21,9 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # engine root o
 from armarium import paths            # noqa: E402
 from corrector import skill_review    # noqa: E402
 from corrector import agent_review    # noqa: E402
+from scribe import config             # noqa: E402
 
-CONFIG_FILE = Path.home() / ".claude" / "scriptorium.local.md"
-OBSERVE_RE = re.compile(r"^\s*observe\s*:\s*(\w+)\s*$", re.MULTILINE)
 # A real route declaration STARTS a line (after markdown decoration: backticks,
 # list/quote markers, whitespace). Anchoring to line-start keeps inline mentions
 # and routing-table rows out of the data — only the canonical "emit one line" counts.
@@ -34,20 +33,6 @@ GUARD_ENV = "SCRIPTORIUM_REVIEW"
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-
-def _is_off() -> bool:
-    try:
-        text = CONFIG_FILE.read_text(encoding="utf-8")
-    except OSError:
-        return False
-    if not text.startswith("---"):
-        return False
-    parts = text.split("---", 2)
-    if len(parts) < 3:
-        return False
-    m = OBSERVE_RE.search(parts[1])
-    return bool(m) and m.group(1).strip().lower() in {"off", "false", "no", "0"}
 
 
 def _emit(record: dict) -> None:
@@ -152,7 +137,7 @@ def emit_method_routes(event: dict) -> int:
 
 
 def main() -> int:
-    if _is_off():
+    if config.observe_off():
         return 0
     if os.environ.get(GUARD_ENV):
         return 0  # inside a corrector review job's own claude — don't log it

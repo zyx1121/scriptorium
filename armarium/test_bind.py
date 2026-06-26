@@ -69,5 +69,61 @@ class BindTest(unittest.TestCase):
         self.assertTrue(any("would link" in line for line in log))
 
 
+class PruneTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        root = Path(self._tmp.name)
+        self.home = root / "instance"
+        self.claude = root / "claude"
+        (self.home / "skills" / "alpha").mkdir(parents=True)
+        (self.home / "skills" / "alpha" / "SKILL.md").write_text("x")
+        (self.home / "agents").mkdir()
+        (self.home / "agents" / "developer.md").write_text("x")
+        bind.bind_claude(self.home, self.claude)   # links are live to start
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_prunes_dangling_owned_link(self):
+        # delete the instance source -> the ~/.claude link goes dangling
+        (self.home / "agents" / "developer.md").unlink()
+        link = self.claude / "agents" / "developer.md"
+        self.assertTrue(link.is_symlink())
+        log = bind.prune_claude(self.home, self.claude)
+        self.assertFalse(link.is_symlink())                  # removed
+        self.assertTrue(any("pruned agents/developer.md" in l for l in log))
+
+    def test_prunes_dangling_skill_dir_link(self):
+        import shutil
+        shutil.rmtree(self.home / "skills" / "alpha")
+        log = bind.prune_claude(self.home, self.claude)
+        self.assertFalse((self.claude / "skills" / "alpha").is_symlink())
+        self.assertTrue(any("pruned skills/alpha" in l for l in log))
+
+    def test_keeps_live_links(self):
+        self.assertEqual(bind.prune_claude(self.home, self.claude), [])  # nothing dangling
+        self.assertTrue((self.claude / "agents" / "developer.md").is_symlink())
+
+    def test_ignores_foreign_symlink(self):
+        # a dangling symlink the owner aimed OUTSIDE the instance — not ours
+        foreign = self.claude / "skills" / "foreign"
+        foreign.symlink_to(Path(self._tmp.name) / "elsewhere" / "gone")
+        bind.prune_claude(self.home, self.claude)
+        self.assertTrue(foreign.is_symlink())                # left untouched
+
+    def test_ignores_real_file(self):
+        real = self.claude / "agents" / "hand.md"
+        real.write_text("hand-placed")
+        bind.prune_claude(self.home, self.claude)
+        self.assertTrue(real.is_file() and not real.is_symlink())
+        self.assertEqual(real.read_text(), "hand-placed")
+
+    def test_dry_run_reports_without_removing(self):
+        (self.home / "agents" / "developer.md").unlink()
+        log = bind.prune_claude(self.home, self.claude, dry=True)
+        self.assertTrue((self.claude / "agents" / "developer.md").is_symlink())  # still there
+        self.assertTrue(any("would prune agents/developer.md" in l for l in log))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
