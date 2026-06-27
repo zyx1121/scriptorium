@@ -35,7 +35,7 @@ claude plugin install scriptorium@scriptorium
 
 Scriptorium is local-first and writes observation data into your private instance
 under `SCRIPTORIUM_HOME/data/`. The event hook records Claude Code lifecycle and
-Skill/Task metadata; the script observer records non-noise script writes/runs so
+Skill/Agent metadata + per-session delegation posture; the script observer records non-noise script writes/runs so
 repeated patterns can become candidate skills. For script writes it stores the
 path, a short content hash, and up to the first 4096 characters as
 `content_preview`.
@@ -58,7 +58,7 @@ falls back to the current branch on the first remote; non-git instances no-op.
 | Dir | Office | Role | Pieces |
 |-----|--------|------|--------|
 | `armarium/` | Armarium | persistence · sync · index · path map | `paths.py` · `memory-sync.sh` · `gen_memory_index.py` |
-| `scribe/` | Scribe | observe signal → author new memory/skills | `events.py` (session/skill/method-route) · `observe.py` (scripts) |
+| `scribe/` | Scribe | observe signal → author new memory/skills | `events.py` (session/skill/method-route/delegation-ratio) · `observe.py` (scripts) |
 | `corrector/` | Corrector | calibrate · consolidate existing (propose-only) | `skill_review.py` · `skills/dreaming` |
 | `skills/` | — | engine skills | `method` · `dreaming` |
 | `hooks/` | — | wires offices to Claude Code lifecycle | `hooks.json` |
