@@ -11,7 +11,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Skill|Task",
+        "matcher": "Skill|Agent|Task",
         "hooks": [
           { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" }
         ]
