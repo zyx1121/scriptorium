@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""scribe — author NEW skills & agents from session signal (the copyist's create half).
+"""scribe — author NEW skills, agents & memory from session signal (the copyist's create half).
 
 Reads a recent session transcript, asks a headless claude -p to extract reusable
-SKILL / delegation-AGENT candidates that RECUR and look LONG-TERM worth keeping,
-and writes each as a draft proposal to the instance's staged/ for the owner to
-adopt. PROPOSE-ONLY: it never writes into skills/ or agents/ itself — an
-auto-generated behaviour definition must pass the owner's eye before it's real.
+SKILL / delegation-AGENT candidates plus durable MEMORY facts that RECUR and look
+LONG-TERM worth keeping, and writes each as a draft proposal to the instance's
+staged/ for the owner to adopt. PROPOSE-ONLY: it never writes into skills/,
+agents/, or memory/ itself — an auto-generated definition must pass the owner's
+eye before it's real.
 
 This is the Scribe's authoring half, symmetric to the Corrector's review half
 (skill_review / agent_review). It deliberately does NOT consolidate or promote —
@@ -35,7 +36,8 @@ TRANSCRIPTS_ROOT = Path.home() / ".claude" / "projects"   # CC convention, not p
 MODEL = "claude-sonnet-4-6"   # extraction quality matters (anti-noise); tunable
 MAX_CHARS = 40_000            # per-session input cap (token/cost bound)
 GUARD_ENV = "SCRIPTORIUM_REVIEW"
-KINDS = ("skill", "agent")
+KINDS = ("skill", "agent", "memory")
+MTYPES = ("project", "feedback", "reference", "user")
 
 # secret scrub: defense-in-depth — we feed raw transcript text to a subagent. ---
 SECRET_PATTERNS = [
@@ -105,19 +107,31 @@ def condense(turns, max_chars: int = MAX_CHARS) -> str:
 AUTHOR_SYSTEM = (
     "You are the scriptorium scribe's author. Read a session transcript and extract "
     "ONLY reusable capabilities that RECUR and look LONG-TERM worth keeping — never "
-    "one-off work. Two kinds:\n"
+    "one-off work. Three kinds:\n"
     "- skill: a reusable non-trivial PROCEDURE worked out in the session, worth "
     "writing down so next time is faster.\n"
     "- agent: a recurring DELEGATION need — a kind of isolatable work (coding / "
     "survey / review / planning in a specific domain) that keeps getting handed off "
     "and would deserve its own reusable worker definition.\n"
-    "Output a JSON array (and nothing else). Item shape: {\"kind\":\"skill|agent\", "
-    "\"slug\":\"english-kebab-case\", \"title\":str, \"rationale\":str (WHY it recurs "
-    "and is long-term — cite what in the session shows repetition), \"draft\":str (the "
-    "SKILL.md body, or the agent system prompt)}. Rules: durable + recurring ONLY (if "
-    "it happened once, skip it); prefer FEW high-signal candidates; NEVER include "
-    "secrets / credentials / tokens / PII (passwords incl. lab/dev defaults, keys, "
-    "tokens omitted or «REDACTED»). If nothing qualifies, output []."
+    "- memory: a durable FACT (preference / convention / project fact / external "
+    "reference) that would change future behavior if remembered. Must be recurring "
+    "and long-term — not a one-off status update or milestone. Carry an mtype: "
+    "project (ongoing-work facts), feedback (how the agent should behave), "
+    "reference (external pointers/specs/gotchas), user (who the user is). "
+    "DO NOT emit project progress / 'X done' / 'PR merged' updates — those drift "
+    "stale; only emit facts that stay true and would cause repeated mistakes if "
+    "forgotten.\n"
+    "Output a JSON array (and nothing else). Item shape for skill/agent: "
+    "{\"kind\":\"skill|agent\", \"slug\":\"english-kebab-case\", \"title\":str, "
+    "\"rationale\":str (WHY it recurs and is long-term — cite what in the session "
+    "shows repetition), \"draft\":str (the SKILL.md body, or the agent system "
+    "prompt)}. Item shape for memory: {\"kind\":\"memory\", "
+    "\"mtype\":\"project|feedback|reference|user\", \"slug\":\"english-kebab-case\", "
+    "\"title\":str (one-line description), \"rationale\":str, \"draft\":str (the body "
+    "text for the memory file)}. Rules: durable + recurring ONLY (if it happened "
+    "once, skip it); prefer FEW high-signal candidates; NEVER include secrets / "
+    "credentials / tokens / PII (passwords incl. lab/dev defaults, keys, tokens "
+    "omitted or «REDACTED»). If nothing qualifies, output []."
 )
 
 
@@ -145,7 +159,7 @@ def slugify(s: str) -> str:
 
 def parse_candidates(raw: str) -> list[dict]:
     """Tolerant parse: unwrap claude --output-format json envelope, then the array.
-    Keeps only well-formed skill/agent items that carry a title AND a draft."""
+    Keeps only well-formed skill/agent/memory items that carry a title AND a draft."""
     text = raw
     try:
         env = json.loads(raw)
@@ -163,13 +177,17 @@ def parse_candidates(raw: str) -> list[dict]:
     out = []
     for it in items if isinstance(items, list) else []:
         if isinstance(it, dict) and it.get("kind") in KINDS and it.get("title") and it.get("draft"):
-            out.append({
+            c = {
                 "kind": it["kind"],
                 "slug": slugify(str(it.get("slug") or it.get("title"))),
                 "title": str(it["title"]),
                 "rationale": str(it.get("rationale", "")),
                 "draft": str(it["draft"]),
-            })
+            }
+            if it["kind"] == "memory":
+                raw_mtype = str(it.get("mtype", "reference"))
+                c["mtype"] = raw_mtype if raw_mtype in MTYPES else "reference"
+            out.append(c)
     return out
 
 
@@ -249,7 +267,8 @@ def main() -> int:
         out = stage_proposals(path.stem, cands)
         n_skill = sum(c["kind"] == "skill" for c in cands)
         n_agent = sum(c["kind"] == "agent" for c in cands)
-        print(f"{path.stem}: {n_skill} skill + {n_agent} agent proposal(s) → {out}")
+        n_memory = sum(c["kind"] == "memory" for c in cands)
+        print(f"{path.stem}: {n_skill} skill + {n_agent} agent + {n_memory} memory proposal(s) → {out}")
     else:
         print(f"{path.stem}: nothing worth authoring")
     seen.add(path.stem)
