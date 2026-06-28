@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""scribe — author NEW skills & agents from session signal (the copyist's create half).
+"""scribe — author NEW skills, agents & memory from session signal (the copyist's create half).
 
 Reads a recent session transcript, asks a headless claude -p to extract reusable
-SKILL / delegation-AGENT candidates that RECUR and look LONG-TERM worth keeping,
-and writes each as a draft proposal to the instance's staged/ for the owner to
-adopt. PROPOSE-ONLY: it never writes into skills/ or agents/ itself — an
-auto-generated behaviour definition must pass the owner's eye before it's real.
+SKILL / delegation-AGENT candidates plus durable MEMORY facts that RECUR and look
+LONG-TERM worth keeping, and writes each as a draft proposal to the instance's
+staged/ for the owner to adopt. PROPOSE-ONLY: it never writes into skills/,
+agents/, or memory/ itself — an auto-generated definition must pass the owner's
+eye before it's real.
 
 This is the Scribe's authoring half, symmetric to the Corrector's review half
 (skill_review / agent_review). It deliberately does NOT consolidate or promote —
