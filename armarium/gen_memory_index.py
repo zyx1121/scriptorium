@@ -19,10 +19,15 @@ never auto-mutates (mutating hand-written memory stays human/dreaming-gated):
   - unquoted-desc : a bare (unquoted) `description:` scalar — Claude Code's memory
                     normalizer truncates these; wrap the value in double quotes
 
-Usage:  gen_memory_index.py [MEMORY_DIR]   (defaults to SCRIPTORIUM_HOME/memory)
+Usage:  gen_memory_index.py [MEMORY_DIR ...]   (1+ dirs; MEMORY.md is written into the
+        FIRST dir and every row's link is relative to it, so files in the other dirs — e.g.
+        a shared common-memory/memory submodule — get a correct `../…` path. Defaults to
+        SCRIPTORIUM_HOME/memory. Missing dirs are skipped, so an instance that hasn't mounted
+        the common submodule still builds its index from what's present.)
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -72,11 +77,24 @@ def type_of(text: str) -> str | None:
     return m.group(1) if m else None
 
 
-def build_rows(mem_dir: Path) -> tuple[list[str], dict[str, list[str]]]:
+def build_rows(mem_dirs, index_dir=None) -> tuple[list[str], dict[str, list[str]]]:
     """Return (index rows, lint warnings keyed by category). Pure — reads only.
 
-    warnings keys: missing-title, bad-type, orphan-link (see module docstring)."""
-    files = [p for p in sorted(mem_dir.glob("*.md")) if p.name != "MEMORY.md"]
+    mem_dirs: a single dir (Path/str) OR a list of dirs merged into one index — e.g. the
+    instance memory/ plus a shared common-memory/memory submodule. index_dir is where
+    MEMORY.md lives; each row's link is computed relative to it, so files in the other dirs
+    (common) get a correct `../…` path. Defaults to the first dir. Lint (orphan-link etc.)
+    is computed over the UNION, so a private→common [[wikilink]] resolves correctly.
+
+    warnings keys: missing-title, bad-type, orphan-link, unquoted-desc (see module docstring)."""
+    if isinstance(mem_dirs, (str, Path)):
+        mem_dirs = [mem_dirs]
+    mem_dirs = [Path(d) for d in mem_dirs]
+    index_dir = Path(index_dir) if index_dir is not None else mem_dirs[0]
+    files = sorted(
+        (p for d in mem_dirs for p in d.glob("*.md") if p.name != "MEMORY.md"),
+        key=lambda p: p.name,
+    )
     stems = {p.stem for p in files}
     rows: list[str] = []
     warn: dict[str, list[str]] = {"missing-title": [], "bad-type": [], "orphan-link": [], "unquoted-desc": []}
@@ -96,16 +114,21 @@ def build_rows(mem_dir: Path) -> tuple[list[str], dict[str, list[str]]]:
             tgt = m.group(1).strip()
             if tgt not in stems:
                 warn["orphan-link"].append(f"{p.name}→[[{tgt}]]")
-        rows.append(f'- [{fm.get("title") or p.stem}]({p.name}) — {fm.get("description", "")}')
+        link = os.path.relpath(p, index_dir)
+        rows.append(f'- [{fm.get("title") or p.stem}]({link}) — {fm.get("description", "")}')
     return rows, warn
 
 
 def main() -> int:
-    mem = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else _default_memory_dir()
-    index = mem / "MEMORY.md"
-    rows, warn = build_rows(mem)
+    args = [Path(a).expanduser() for a in sys.argv[1:]] or [_default_memory_dir()]
+    index_dir = args[0]
+    # Skip dirs that don't exist (e.g. the common-memory submodule on an instance that
+    # hasn't mounted it) so the index still builds from whatever is present.
+    mem_dirs = [d for d in args if d.is_dir()] or [index_dir]
+    index = index_dir / "MEMORY.md"
+    rows, warn = build_rows(mem_dirs, index_dir=index_dir)
     index.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    print(f"gen-memory-index: {len(rows)} entries -> {index}")
+    print(f"gen-memory-index: {len(rows)} entries from {len(mem_dirs)} dir(s) -> {index}")
     total = sum(len(v) for v in warn.values())
     if total:
         print(f"  LINT: {total} convention issue(s) — for the dreaming 規範對齊 step:")
