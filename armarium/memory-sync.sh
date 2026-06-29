@@ -73,7 +73,11 @@ fi
 # 一致。gen_memory_index.py 同在此目錄(armarium/),相對自身定位,不依賴 PLUGIN_ROOT。
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 gen_py="$(command -v python3 || command -v python || true)"
-[ -n "$gen_py" ] && "$gen_py" "$SCRIPT_DIR/gen_memory_index.py" "$HOME_DIR/memory" >/dev/null 2>&1 || true
+# Merge a shared common-memory/memory submodule into the one index when the instance mounts it
+# (links to common entries come out relative, e.g. ../common-memory/memory/x.md).
+gen_dirs=("$HOME_DIR/memory")
+[ -d "$HOME_DIR/common-memory/memory" ] && gen_dirs+=("$HOME_DIR/common-memory/memory")
+[ -n "$gen_py" ] && "$gen_py" "$SCRIPT_DIR/gen_memory_index.py" "${gen_dirs[@]}" >/dev/null 2>&1 || true
 
 n=$(git status --porcelain -- memory | wc -l | tr -d ' ')
 git add -A memory >/dev/null 2>&1 || exit 0

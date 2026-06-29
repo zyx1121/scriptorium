@@ -47,6 +47,29 @@ class BuildRowsTest(unittest.TestCase):
             self.assertEqual(warn["bad-type"], [])                           # type=feedback matches prefix
             self.assertEqual(len(rows), 3)                                   # MEMORY.md excluded
 
+    def test_merges_multiple_dirs_with_relative_links(self):
+        with TemporaryDirectory() as d:
+            base = Path(d)
+            priv = base / "memory"; priv.mkdir()
+            common = base / "common-memory" / "memory"; common.mkdir(parents=True)
+            (priv / "feedback_p.md").write_text(
+                '---\ntitle: Priv\ndescription: mine\ntype: feedback\n---\nsee [[reference_shared]]')
+            (common / "reference_shared.md").write_text(
+                '---\ntitle: Shared\ndescription: ours\ntype: reference\n---\nx')
+            rows, warn = gmi.build_rows([priv, common], index_dir=priv)
+            joined = "\n".join(rows)
+            self.assertIn("- [Priv](feedback_p.md) — mine", joined)                       # private: bare filename
+            self.assertIn("Shared](../common-memory/memory/reference_shared.md)", joined)  # common: relative ../
+            self.assertEqual(warn["orphan-link"], [])     # private->common [[wikilink]] resolves across the union
+            self.assertEqual(len(rows), 2)
+
+    def test_single_dir_backward_compatible(self):
+        with TemporaryDirectory() as d:
+            mem = Path(d)
+            (mem / "feedback_a.md").write_text('---\ntitle: A\ndescription: a\ntype: feedback\n---\nx')
+            rows, _ = gmi.build_rows(mem)                  # single Path, no index_dir — old call shape
+            self.assertEqual(rows, ["- [A](feedback_a.md) — a"])   # unchanged: bare filename, no ../
+
 
 class LintTest(unittest.TestCase):
     def test_bad_type_prefix_mismatch_and_nested_ok(self):
@@ -128,6 +151,18 @@ class MemorySyncSmokeTest(unittest.TestCase):
         self.assertIn("auto-sync", log.stdout)                                   # committed
         idx = (Path(self.home) / "memory" / "MEMORY.md").read_text()
         self.assertIn("- [Foo](foo.md) — a foo", idx)                            # index rebuilt from frontmatter
+
+    def test_common_memory_merged_into_index(self):
+        # a mounted common-memory/memory submodule is merged into the one MEMORY.md, links relative
+        common = Path(self.home) / "common-memory" / "memory"
+        common.mkdir(parents=True)
+        (common / "reference_dev.md").write_text('---\ntitle: Dev\ndescription: shared fact\ntype: reference\n---\nx')
+        (Path(self.home) / "memory" / "foo.md").write_text('---\ntitle: Foo\ndescription: a foo\n---\nbody')
+        r = self._run_sync()
+        self.assertEqual(r.returncode, 0)
+        idx = (Path(self.home) / "memory" / "MEMORY.md").read_text()
+        self.assertIn("- [Foo](foo.md) — a foo", idx)                                       # private (bare)
+        self.assertIn("Dev](../common-memory/memory/reference_dev.md) — shared fact", idx)  # common (relative)
 
     def test_clean_memory_no_commit(self):
         before = subprocess.run(["git", "-C", self.home, "rev-parse", "HEAD"], capture_output=True, text=True).stdout
