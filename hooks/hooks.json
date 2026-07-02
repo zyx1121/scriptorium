@@ -28,7 +28,8 @@
         "hooks": [
           { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scribe/events.py\"" },
           { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/armarium/memory-sync.sh\"" },
-          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/armarium/otel_sync.py\"" }
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/armarium/otel_sync.py\"" },
+          { "type": "command", "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/notify.py\"" }
         ]
       }
     ]

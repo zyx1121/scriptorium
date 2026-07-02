@@ -49,6 +49,16 @@ class ObserveOffTest(unittest.TestCase):
         cfg.CONFIG_FILE.write_text("---\nobserve: off\n", encoding="utf-8")
         self.assertFalse(cfg.observe_off())
 
+    def test_notify_off_independent_of_observe(self):
+        cfg.CONFIG_FILE.write_text("---\nnotify: off\n---\n", encoding="utf-8")
+        self.assertTrue(cfg.notify_off())
+        self.assertFalse(cfg.observe_off())
+
+    def test_notify_defaults_on(self):
+        self.assertFalse(cfg.notify_off())
+        cfg.CONFIG_FILE.write_text("---\nobserve: off\n---\n", encoding="utf-8")
+        self.assertFalse(cfg.notify_off())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
