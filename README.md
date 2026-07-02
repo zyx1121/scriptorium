@@ -49,6 +49,10 @@ observe: off
 ---
 ```
 
+On macOS, a Stop hook (`hooks/notify.py`) posts a system notification when
+Claude Code finishes responding; other platforms no-op. Disable it with
+`notify: off` in the same frontmatter.
+
 Memory sync (`armarium/memory-sync.sh`) only commits `memory/` changes in your
 instance repo. It uses the configured git upstream when available, otherwise it
 falls back to the current branch on the first remote; non-git instances no-op.
@@ -61,5 +65,5 @@ falls back to the current branch on the first remote; non-git instances no-op.
 | `scribe/` | Scribe | observe signal → author new memory/skills | `events.py` (session/skill/method-route/delegation-ratio) · `observe.py` (scripts) |
 | `corrector/` | Corrector | calibrate · consolidate existing (propose-only) | `skill_review.py` · `skills/dreaming` |
 | `skills/` | — | engine skills | `method` · `dreaming` |
-| `hooks/` | — | wires offices to Claude Code lifecycle | `hooks.json` |
+| `hooks/` | — | wires offices to Claude Code lifecycle | `hooks.json` · `notify.py` |
 | `bin/` | — | instance setup helpers | |
